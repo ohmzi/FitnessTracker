@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.ohmz.repstracker
 
 
@@ -6,7 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -28,6 +30,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -41,6 +46,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +56,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -66,7 +76,7 @@ fun ActivityGrid() {
         remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
     val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
 
-    var zoomFactor by remember { mutableStateOf(1f) }
+    var zoomFactor by remember { mutableFloatStateOf(1f) }
     val visibleDays by remember {
         derivedStateOf {
             allDays.take(
@@ -76,6 +86,7 @@ fun ActivityGrid() {
     }
 
     var checkStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { false } }) }
+    var labelStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { "40" } }) }
 
     val state = rememberTransformableState { zoomChange, _, _ ->
         zoomFactor *= zoomChange
@@ -156,14 +167,14 @@ fun ActivityGrid() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
-                    var offsetX by remember { mutableStateOf(0f) }
+                    var offsetX by remember { mutableFloatStateOf(0f) }
                     val dismissThreshold = -200f
 
                     val animatedOffset by animateFloatAsState(
                         targetValue = offsetX, animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        )
+                        ), label = ""
                     )
 
                     Box(
@@ -207,6 +218,9 @@ fun ActivityGrid() {
                                                 checkStates = checkStates
                                                     .toMutableList()
                                                     .apply { removeAt(index) }
+                                                labelStates = labelStates
+                                                    .toMutableList()
+                                                    .apply { removeAt(index) }
                                             }
                                         } else {
                                             offsetX = 0f
@@ -234,9 +248,10 @@ fun ActivityGrid() {
                                         .height(rowHeight),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    AnimatedCheckCircle2(
-                                        isChecked = checkStates.getOrNull(index)
-                                            ?.getOrNull(colIndex) ?: false,
+                                    val labelValue =
+                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "40"
+                                    AnimatedCheckCircle2(isChecked = checkStates.getOrNull(index)
+                                        ?.getOrNull(colIndex) ?: false,
                                         onCheckedChange = { newState ->
                                             checkStates = checkStates.mapIndexed { rowIdx, row ->
                                                 if (rowIdx == index) {
@@ -247,8 +262,28 @@ fun ActivityGrid() {
                                             }
                                         },
                                         size = (rowHeight.value * 0.6).dp,
-                                        label = "40KG"
-                                    )
+                                        label = labelValue,
+                                        onLabelChange = { newLabel ->
+                                            labelStates = labelStates.mapIndexed { rowIdx, row ->
+                                                if (rowIdx == index) {
+                                                    row.mapIndexed { colIdx, col ->
+                                                        if (colIdx == colIndex) {
+                                                            newLabel
+                                                        } else {
+                                                            val prevValue = col.toIntOrNull() ?: 40
+                                                            val newValue =
+                                                                if (colIdx == colIndex + 1) {
+                                                                    (newLabel.toIntOrNull()
+                                                                        ?: prevValue) + 10
+                                                                } else {
+                                                                    prevValue
+                                                                }
+                                                            newValue.toString()
+                                                        }
+                                                    }
+                                                } else row
+                                            }
+                                        })
                                 }
                             }
                         }
@@ -261,8 +296,7 @@ fun ActivityGrid() {
                                 .padding(top = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TextField(
-                                value = newExerciseName,
+                            TextField(value = newExerciseName,
                                 onValueChange = { newExerciseName = it },
                                 label = { Text("New Exercise", color = Color.White) },
                                 colors = TextFieldDefaults.colors(
@@ -285,12 +319,16 @@ fun ActivityGrid() {
                                         checkStates = checkStates.toMutableList().apply {
                                             add(List(allDays.size) { false })
                                         }
+                                        labelStates = labelStates.toMutableList().apply {
+                                            add(List(allDays.size) { "40" })
+                                        }
                                         newExerciseName = ""
                                         coroutineScope.launch {
                                             lazyListState.animateScrollToItem(activities.size - 1)
                                         }
                                     }
-                                }, colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                             ) {
                                 Text("Add", color = Color.Black)
                             }
@@ -310,9 +348,15 @@ fun ActivityGrid() {
         )
     }
 }
+
+
 @Composable
 fun AnimatedCheckCircle2(
-    isChecked: Boolean, onCheckedChange: (Boolean) -> Unit, size: Dp = 40.dp, label: String = "40KG"
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    size: Dp = 40.dp,
+    label: String,
+    onLabelChange: (String) -> Unit
 ) {
     val backgroundColor = if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F)
     val cornerRadius = size / 4
@@ -320,22 +364,67 @@ fun AnimatedCheckCircle2(
     val interactionSource = remember { MutableInteractionSource() }
     val indication = rememberRipple(bounded = true, radius = size / 2)
 
+    var isEditing by remember { mutableStateOf(false) }
+    var editableLabel by remember { mutableStateOf(label) }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Box(
         modifier = Modifier
             .size(size)
             .background(backgroundColor, RoundedCornerShape(cornerRadius))
             .indication(interactionSource, indication)
-            .clickable(interactionSource = interactionSource,
-                indication = null,
-                onClick = { onCheckedChange(!isChecked) }), contentAlignment = Alignment.Center
+            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+                if (!isEditing) {
+                    onCheckedChange(!isChecked)
+                    if (isChecked) {
+                        isEditing = false
+                        keyboardController?.hide()
+                    }
+                }
+            }, onLongClick = {
+                if (!isChecked) {
+                    isEditing = true
+                    editableLabel = ""
+                }
+            }), contentAlignment = Alignment.Center
     ) {
         if (!isChecked) {
-            Text(
-                text = label,
-                color = Color.White,
-                fontSize = (size.value * 0.3).sp,
-                textAlign = TextAlign.Center
-            )
+            if (isEditing) {
+                BasicTextField(value = editableLabel,
+                    onValueChange = {
+                        editableLabel = it
+                        onLabelChange(it)
+                    },
+                    textStyle = TextStyle(
+                        color = Color.White,
+                        fontSize = (size.value * 0.3).sp,
+                        textAlign = TextAlign.Center
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxSize(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        isEditing = false
+                        keyboardController?.hide()
+                    }),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()
+                        ) {
+                            innerTextField()
+                        }
+                    })
+            } else {
+                Text(
+                    text = label,
+                    color = Color.White,
+                    fontSize = (size.value * 0.3).sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         } else {
             Icon(
                 imageVector = Icons.Default.Check,
