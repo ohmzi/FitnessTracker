@@ -32,8 +32,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -92,6 +96,8 @@ fun ActivityGrid() {
         }
     }
 
+    var newExerciseName by remember { mutableStateOf("") }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -104,12 +110,14 @@ fun ActivityGrid() {
                     )
                 )
             )
-            .transformable(state = state)
+            .transformable(state = state),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
-            modifier = Modifier.padding(vertical = 16.dp)
+            modifier = Modifier
+                .padding(vertical = 16.dp)
+                .fillMaxWidth()
         ) {
             // Header row
             Row(
@@ -143,7 +151,9 @@ fun ActivityGrid() {
 
             // Activity rows
             LazyColumn(
-                state = lazyListState, verticalArrangement = Arrangement.spacedBy(16.dp)
+                state = lazyListState,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
                     var offsetX by remember { mutableStateOf(0f) }
@@ -236,9 +246,53 @@ fun ActivityGrid() {
                                                 } else row
                                             }
                                         },
-                                        size = (rowHeight.value * 0.6).dp
+                                        size = (rowHeight.value * 0.6).dp,
+                                        label = "40KG"
                                     )
                                 }
+                            }
+                        }
+                    }
+                    if (index == activities.lastIndex) {
+                        // Add new exercise row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextField(
+                                value = newExerciseName,
+                                onValueChange = { newExerciseName = it },
+                                label = { Text("New Exercise", color = Color.White) },
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedTextColor = Color.White,
+                                    focusedTextColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedIndicatorColor = Color.White,
+                                    unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    if (newExerciseName.isNotBlank()) {
+                                        activities.add(newExerciseName)
+                                        checkStates = checkStates.toMutableList().apply {
+                                            add(List(allDays.size) { false })
+                                        }
+                                        newExerciseName = ""
+                                        coroutineScope.launch {
+                                            lazyListState.animateScrollToItem(activities.size - 1)
+                                        }
+                                    }
+                                }, colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                            ) {
+                                Text("Add", color = Color.Black)
                             }
                         }
                     }
@@ -256,7 +310,6 @@ fun ActivityGrid() {
         )
     }
 }
-
 @Composable
 fun AnimatedCheckCircle2(
     isChecked: Boolean, onCheckedChange: (Boolean) -> Unit, size: Dp = 40.dp, label: String = "40KG"
@@ -273,7 +326,7 @@ fun AnimatedCheckCircle2(
             .background(backgroundColor, RoundedCornerShape(cornerRadius))
             .indication(interactionSource, indication)
             .clickable(interactionSource = interactionSource,
-                indication = null, // We use a custom indication, so set this to null
+                indication = null,
                 onClick = { onCheckedChange(!isChecked) }), contentAlignment = Alignment.Center
     ) {
         if (!isChecked) {
