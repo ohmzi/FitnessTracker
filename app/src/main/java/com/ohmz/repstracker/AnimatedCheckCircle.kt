@@ -40,7 +40,7 @@ fun AnimatedCheckCircle() {
         animationSpec = infiniteRepeatable(
             animation = tween(1000),
             repeatMode = RepeatMode.Reverse
-        )
+        ), label = ""
     )
 
     Column(

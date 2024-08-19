@@ -1,4 +1,10 @@
 package com.ohmz.repstracker
+
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.runtime.remember
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -29,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -36,10 +43,49 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.roundToInt
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import kotlinx.coroutines.launch
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import kotlinx.coroutines.launch
+
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ActivityGrid() {
-    val activities = listOf("Exercise", "Read", "Meditate", "Study", "Cook", "Work", "Relax")
+    val activities = remember { mutableStateListOf("Exercise", "Read", "Meditate", "Study", "Cook", "Work", "Relax") }
     val allDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     var zoomFactor by remember { mutableStateOf(1f) }
@@ -53,13 +99,14 @@ fun ActivityGrid() {
     }
 
     val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     val rowHeight by remember { derivedStateOf { (60 * zoomFactor).coerceIn(60.0F, 180.0F).dp } }
 
     val visibleRowCount by remember {
         derivedStateOf {
             val visibleHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
-            (visibleHeight / rowHeight.value).toInt()
+            (visibleHeight / rowHeight.value).toInt().coerceAtMost(activities.size)
         }
     }
 
@@ -95,38 +142,101 @@ fun ActivityGrid() {
 
             // Activity rows
             LazyColumn(state = lazyListState) {
-                itemsIndexed(activities) { index, activity ->
-                    Row(Modifier.fillMaxWidth()) {
+                itemsIndexed(
+                    items = activities,
+                    key = { index, item -> item } // Use the activity as the key
+                ) { index, activity ->
+                    var offsetX by remember { mutableStateOf(0f) }
+                    val dismissThreshold = -200f // Negative value for right-to-left swipe
+
+                    val animatedOffset by animateFloatAsState(
+                        targetValue = offsetX,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    )
+
+                    Box(
+                        Modifier.animateItemPlacement(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        )
+                    ) {
+                        // Delete button (hidden off-screen to the right)
                         Box(
                             Modifier
-                                .weight(1f)
-                                .height(rowHeight)
-                                .border(1.dp, Color.Gray),
-                            contentAlignment = Alignment.CenterStart
+                                .align(Alignment.CenterEnd)
+                                .offset(x = rowHeight)
+                                .size(rowHeight)
+                                .background(Color.Red),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(activity, modifier = Modifier.padding(start = 8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White
+                            )
                         }
-                        visibleDays.forEachIndexed { colIndex, _ ->
+
+                        // Main row content
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                                .draggable(
+                                    orientation = Orientation.Horizontal,
+                                    state = rememberDraggableState { delta ->
+                                        offsetX += delta
+                                        offsetX = offsetX.coerceAtMost(0f) // Prevent dragging to the right
+                                    },
+                                    onDragStopped = {
+                                        if (offsetX < dismissThreshold) {
+                                            // Delete the item
+                                            coroutineScope.launch {
+                                                activities.removeAt(index)
+                                                checkStates = checkStates.toMutableList().apply { removeAt(index) }
+                                            }
+                                        } else {
+                                            // Reset the offset
+                                            offsetX = 0f
+                                        }
+                                    }
+                                )
+                        ) {
                             Box(
                                 Modifier
                                     .weight(1f)
                                     .height(rowHeight)
                                     .border(1.dp, Color.Gray),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.CenterStart
                             ) {
-                                AnimatedCheckCircle2(
-                                    isChecked = checkStates[index][colIndex],
-                                    onCheckedChange = { newState ->
-                                        checkStates = checkStates.mapIndexed { rowIdx, row ->
-                                            if (rowIdx == index) {
-                                                row.mapIndexed { colIdx, col ->
-                                                    if (colIdx == colIndex) newState else col
-                                                }
-                                            } else row
-                                        }
-                                    },
-                                    size = (rowHeight.value * 0.6).dp
-                                )
+                                Text(activity, modifier = Modifier.padding(start = 8.dp))
+                            }
+                            visibleDays.forEachIndexed { colIndex, _ ->
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .height(rowHeight)
+                                        .border(1.dp, Color.Gray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AnimatedCheckCircle2(
+                                        isChecked = checkStates.getOrNull(index)?.getOrNull(colIndex) ?: false,
+                                        onCheckedChange = { newState ->
+                                            checkStates = checkStates.mapIndexed { rowIdx, row ->
+                                                if (rowIdx == index) {
+                                                    row.mapIndexed { colIdx, col ->
+                                                        if (colIdx == colIndex) newState else col
+                                                    }
+                                                } else row
+                                            }
+                                        },
+                                        size = (rowHeight.value * 0.6).dp
+                                    )
+                                }
                             }
                         }
                     }
@@ -148,7 +258,8 @@ fun ActivityGrid() {
 fun AnimatedCheckCircle2(
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    size: Dp = 40.dp
+    size: Dp = 40.dp,
+    label: String = "40KG"
 ) {
     val animatedColor by animateColorAsState(
         targetValue = if (isChecked) Color.Green else Color.Gray,
@@ -166,10 +277,16 @@ fun AnimatedCheckCircle2(
         label = ""
     )
 
+    val interactionSource = remember { MutableInteractionSource() }
+
     Box(
         modifier = Modifier
             .size(size)
-            .clickable { onCheckedChange(!isChecked) },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = false, radius = size / 2),
+                onClick = { onCheckedChange(!isChecked) }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(size)) {
@@ -192,8 +309,15 @@ fun AnimatedCheckCircle2(
             }
         }
 
-        // Checkmark icon
-        if (isChecked) {
+        // Label or Checkmark
+        if (!isChecked) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = (size.value * 0.3).sp,
+                textAlign = TextAlign.Center
+            )
+        } else {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Checkmark",
