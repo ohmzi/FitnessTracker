@@ -22,7 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,16 +34,18 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun CircleProgressBar() {
-    var progress by remember { mutableStateOf(0f) }
+    var progress by remember { mutableFloatStateOf(0f) }
     val animatedProgress by animateFloatAsState(
-        targetValue = progress, animationSpec = tween(durationMillis = 1000, easing = LinearEasing)
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = ""
     )
-    val ringAnimation = rememberInfiniteTransition()
+    val ringAnimation = rememberInfiniteTransition(label = "")
 
     val ringAlpha by ringAnimation.animateFloat(
         initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
             animation = tween(1000), repeatMode = RepeatMode.Reverse
-        )
+        ), label = ""
     )
 
     Column(
@@ -76,11 +78,6 @@ fun CircleProgressBar() {
                         radius = radius + 20.dp.toPx() * ringAlpha,
                         style = Stroke(width = 2.dp.toPx())
                     )
-                    Log.d ("animatedProgress 100", animatedProgress.toString())
-
-                }
-                else {
-                    Log.d ("animatedProgress", animatedProgress.toString())
                 }
             }
             Text("${(animatedProgress * 100).toInt()}%")

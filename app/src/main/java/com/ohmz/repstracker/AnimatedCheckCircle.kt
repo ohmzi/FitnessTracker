@@ -30,10 +30,10 @@ fun AnimatedCheckCircle() {
 
     val animatedColor by animateColorAsState(
         targetValue = if (isChecked) Color.Green else Color.Gray,
-        animationSpec = tween(durationMillis = 300)
+        animationSpec = tween(durationMillis = 300), label = ""
     )
 
-    val ringAnimation = rememberInfiniteTransition()
+    val ringAnimation = rememberInfiniteTransition(label = "")
     val ringAlpha by ringAnimation.animateFloat(
         initialValue = 0f,
         targetValue = 1f,

@@ -2,10 +2,15 @@
 
 package com.ohmz.repstracker
 
-
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -44,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -54,8 +60,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -69,6 +82,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ActivityGrid() {
@@ -79,9 +93,7 @@ fun ActivityGrid() {
     var zoomFactor by remember { mutableFloatStateOf(1f) }
     val visibleDays by remember {
         derivedStateOf {
-            allDays.take(
-                (allDays.size / zoomFactor).toInt().coerceAtLeast(1)
-            )
+            allDays.take((allDays.size / zoomFactor).toInt().coerceAtLeast(1))
         }
     }
 
@@ -160,7 +172,6 @@ fun ActivityGrid() {
                 }
             }
 
-            // Activity rows
             LazyColumn(
                 state = lazyListState,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -176,6 +187,12 @@ fun ActivityGrid() {
                             stiffness = Spring.StiffnessLow
                         ), label = ""
                     )
+
+                    val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
+                    val totalCount = visibleDays.size
+                    val progress = remember(checkedCount, totalCount) {
+                        if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
+                    }
 
                     Box(
                         Modifier.animateItemPlacement(
@@ -230,15 +247,14 @@ fun ActivityGrid() {
                             Box(
                                 Modifier
                                     .weight(1.5f)
-                                    .height(rowHeight),
-                                contentAlignment = Alignment.CenterStart
+                                    .height(rowHeight)
+                                    .padding(start = 16.dp, end = 8.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    activity,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(start = 16.dp),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                LabelProgressIndicator(
+                                    label = activity,
+                                    progress = progress,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                             visibleDays.forEachIndexed { colIndex, _ ->
@@ -433,5 +449,72 @@ fun AnimatedCheckCircle2(
                 modifier = Modifier.size(size * 0.6f)
             )
         }
+    }
+}
+
+@Composable
+fun LabelProgressIndicator(
+    label: String, progress: Float, modifier: Modifier = Modifier
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing), label = ""
+    )
+
+    val outlineColor = if (progress >= 1f) Color(0xFF4CAF50) else Color.White
+    val phase = remember { Animatable(0f) }
+
+    LaunchedEffect(progress >= 1f) {
+        if (progress >= 1f) {
+            phase.animateTo(
+                targetValue = 1f, animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
+                )
+            )
+        } else {
+            phase.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .background(Color(0xFF37474F), RoundedCornerShape(16.dp))
+            .drawBehind {
+                val strokeWidth = 4.dp.toPx()
+                val cornerRadius = 16.dp.toPx()
+
+                // Draw progress
+                drawRoundRect(
+                    color = Color(0xFF4CAF50),
+                    topLeft = Offset.Zero,
+                    size = Size(size.width * animatedProgress, size.height),
+                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                    style = Fill
+                )
+
+                // Draw outline
+                drawRoundRect(
+                    color = outlineColor,
+                    topLeft = Offset.Zero,
+                    size = size,
+                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                    style = Stroke(
+                        width = strokeWidth, pathEffect = if (progress >= 1f) {
+                            PathEffect.dashPathEffect(
+                                floatArrayOf(20f, 20f), phase = phase.value * 40f
+                            )
+                        } else null
+                    )
+                )
+            }, contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(8.dp)
+        )
     }
 }
