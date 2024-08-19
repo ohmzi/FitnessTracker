@@ -2,6 +2,7 @@
 
 package com.ohmz.repstracker
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -60,7 +61,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -89,11 +91,11 @@ fun ActivityGrid() {
     val activities =
         remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
     val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
-
     var zoomFactor by remember { mutableFloatStateOf(1f) }
     val visibleDays by remember {
         derivedStateOf {
-            allDays.take((allDays.size / zoomFactor).toInt().coerceAtLeast(1))
+            val visibleCount = (allDays.size / zoomFactor).toInt().coerceIn(3, allDays.size)
+            allDays.take(visibleCount)
         }
     }
 
@@ -101,10 +103,10 @@ fun ActivityGrid() {
     var labelStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { "40" } }) }
 
     val state = rememberTransformableState { zoomChange, _, _ ->
-        zoomFactor *= zoomChange
-        zoomFactor = zoomFactor.coerceIn(1f, allDays.size.toFloat())
+        val zoomIncrement = if (zoomChange > 1f) 0.09f else -0.09f
+        zoomFactor = (zoomFactor + zoomIncrement).coerceIn(1f, 1.6f)
+        Log.d("zoomFactor", zoomFactor.toString())
     }
-
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -165,7 +167,8 @@ fun ActivityGrid() {
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(rowHeight), contentAlignment = Alignment.Center
+                            .height(rowHeight),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(day, color = Color.White, textAlign = TextAlign.Center)
                     }
@@ -178,14 +181,16 @@ fun ActivityGrid() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
-                    var offsetX by remember { mutableFloatStateOf(0f) }
+                    var offsetX by remember { mutableStateOf(0f) }
                     val dismissThreshold = -200f
 
                     val animatedOffset by animateFloatAsState(
-                        targetValue = offsetX, animationSpec = spring(
+                        targetValue = offsetX,
+                        animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        ), label = ""
+                        ),
+                        label = ""
                     )
 
                     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
@@ -223,7 +228,8 @@ fun ActivityGrid() {
                             Modifier
                                 .fillMaxWidth()
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .draggable(orientation = Orientation.Horizontal,
+                                .draggable(
+                                    orientation = Orientation.Horizontal,
                                     state = rememberDraggableState { delta ->
                                         offsetX += delta
                                         offsetX = offsetX.coerceAtMost(0f)
@@ -242,7 +248,8 @@ fun ActivityGrid() {
                                         } else {
                                             offsetX = 0f
                                         }
-                                    })
+                                    }
+                                )
                         ) {
                             Box(
                                 Modifier
@@ -266,8 +273,9 @@ fun ActivityGrid() {
                                 ) {
                                     val labelValue =
                                         labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "40"
-                                    AnimatedCheckCircle2(isChecked = checkStates.getOrNull(index)
-                                        ?.getOrNull(colIndex) ?: false,
+                                    AnimatedCheckCircle2(
+                                        isChecked = checkStates.getOrNull(index)
+                                            ?.getOrNull(colIndex) ?: false,
                                         onCheckedChange = { newState ->
                                             checkStates = checkStates.mapIndexed { rowIdx, row ->
                                                 if (rowIdx == index) {
@@ -298,6 +306,8 @@ fun ActivityGrid() {
                                                         }
                                                     }
                                                 } else row
+
+
                                             }
                                         })
                                 }
@@ -312,7 +322,8 @@ fun ActivityGrid() {
                                 .padding(top = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TextField(value = newExerciseName,
+                            TextField(
+                                value = newExerciseName,
                                 onValueChange = { newExerciseName = it },
                                 label = { Text("New Exercise", color = Color.White) },
                                 colors = TextFieldDefaults.colors(
@@ -452,13 +463,17 @@ fun AnimatedCheckCircle2(
     }
 }
 
+
 @Composable
 fun LabelProgressIndicator(
-    label: String, progress: Float, modifier: Modifier = Modifier
+    label: String,
+    progress: Float,
+    modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing), label = ""
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = ""
     )
 
     val outlineColor = if (progress >= 1f) Color(0xFF4CAF50) else Color.White
@@ -467,8 +482,10 @@ fun LabelProgressIndicator(
     LaunchedEffect(progress >= 1f) {
         if (progress >= 1f) {
             phase.animateTo(
-                targetValue = 1f, animationSpec = infiniteRepeatable(
-                    animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
                 )
             )
         } else {
@@ -478,8 +495,9 @@ fun LabelProgressIndicator(
 
     Box(
         modifier = modifier
-            .background(Color(0xFF37474F), RoundedCornerShape(16.dp))
-            .drawBehind {
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF37474F))
+            .drawWithContent {
                 val strokeWidth = 4.dp.toPx()
                 val cornerRadius = 16.dp.toPx()
 
@@ -492,6 +510,9 @@ fun LabelProgressIndicator(
                     style = Fill
                 )
 
+                // Draw content (label)
+                drawContent()
+
                 // Draw outline
                 drawRoundRect(
                     color = outlineColor,
@@ -499,14 +520,17 @@ fun LabelProgressIndicator(
                     size = size,
                     cornerRadius = CornerRadius(cornerRadius, cornerRadius),
                     style = Stroke(
-                        width = strokeWidth, pathEffect = if (progress >= 1f) {
+                        width = strokeWidth,
+                        pathEffect = if (progress >= 1f) {
                             PathEffect.dashPathEffect(
-                                floatArrayOf(20f, 20f), phase = phase.value * 40f
+                                floatArrayOf(20f, 20f),
+                                phase = phase.value * 40f
                             )
                         } else null
                     )
                 )
-            }, contentAlignment = Alignment.Center
+            },
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
