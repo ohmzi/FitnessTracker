@@ -89,7 +89,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
-fun ActivityGrid() {
+fun ActivityGrid2() {
     val activities =
         remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
     val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
@@ -362,7 +362,7 @@ fun ActivityGrid() {
 }
 
 @Composable
-fun AnimatedCheckCircle2(
+fun AnimatedCheckCircle22(
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     size: Dp = 40.dp,
@@ -469,7 +469,7 @@ fun AnimatedCheckCircle2(
 
 
 @Composable
-fun LabelProgressIndicator(
+fun LabelProgressIndicator2(
     label: String, progress: Float, modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
