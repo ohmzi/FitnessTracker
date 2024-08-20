@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RepsTrackerTheme {
-                ActivityGrid()
+                FitnessTrackerUI()
                 //CircleProgressBar()
                // AnimatedCheckCircle()
 
@@ -39,6 +39,6 @@ fun GreetingPreview() {
     RepsTrackerTheme {
         //CircleProgressBar()
        // AnimatedCheckCircle()
-      ActivityGrid()
+        FitnessTrackerUI()
     }
 }

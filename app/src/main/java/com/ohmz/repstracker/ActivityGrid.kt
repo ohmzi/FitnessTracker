@@ -2,14 +2,15 @@
 
 package com.ohmz.repstracker
 
-import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -19,7 +20,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,11 +62,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -77,6 +77,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -86,6 +87,7 @@ import kotlin.math.roundToInt
 
 
 @OptIn(ExperimentalFoundationApi::class)
+@Preview
 @Composable
 fun ActivityGrid() {
     val activities =
@@ -105,7 +107,6 @@ fun ActivityGrid() {
     val state = rememberTransformableState { zoomChange, _, _ ->
         val zoomIncrement = if (zoomChange > 1f) 0.09f else -0.09f
         zoomFactor = (zoomFactor + zoomIncrement).coerceIn(1f, 1.6f)
-        Log.d("zoomFactor", zoomFactor.toString())
     }
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -123,26 +124,11 @@ fun ActivityGrid() {
 
     var newExerciseName by remember { mutableStateOf("") }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFFF69B4),  // Pink
-                        Color(0xFFFF8C00),  // Dark Orange
-                        Color(0xFF4169E1)   // Royal Blue
-                    )
-                )
-            )
-            .transformable(state = state),
-    ) {
+    Box {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
-            modifier = Modifier
-                .padding(vertical = 16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             // Header row
             Row(
@@ -152,23 +138,21 @@ fun ActivityGrid() {
             ) {
                 Box(
                     Modifier
-                        .weight(1.5f)
-                        .height(rowHeight),
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .height(rowHeight)
+                        .padding(start = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        "Exercise",
-                        color = Color.White,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.padding(start = 16.dp)
+                        "Exercise", color = Color.White
                     )
                 }
                 visibleDays.forEach { day ->
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(rowHeight),
-                        contentAlignment = Alignment.Center
+                            .height(rowHeight), contentAlignment = Alignment.Center
                     ) {
                         Text(day, color = Color.White, textAlign = TextAlign.Center)
                     }
@@ -181,16 +165,14 @@ fun ActivityGrid() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
-                    var offsetX by remember { mutableStateOf(0f) }
+                    var offsetX by remember { mutableFloatStateOf(0f) }
                     val dismissThreshold = -200f
 
                     val animatedOffset by animateFloatAsState(
-                        targetValue = offsetX,
-                        animationSpec = spring(
+                        targetValue = offsetX, animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        ),
-                        label = ""
+                        ), label = ""
                     )
 
                     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
@@ -200,36 +182,24 @@ fun ActivityGrid() {
                     }
 
                     Box(
-                        Modifier.animateItemPlacement(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow
+                        Modifier
+                            .padding(0.dp)
+                            .animateItemPlacement(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
                             )
-                        )
                     ) {
                         // Delete button (hidden off-screen to the right)
-                        Box(
-                            Modifier
-                                .align(Alignment.CenterEnd)
-                                .offset(x = rowHeight)
-                                .size(rowHeight)
-                                .background(Color.Red),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White
-                            )
-                        }
 
                         // Main row content
                         Row(
                             Modifier
                                 .fillMaxWidth()
+                                .padding(start = 0.dp, top = 16.dp, bottom = 0.dp)
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .draggable(
-                                    orientation = Orientation.Horizontal,
+                                .draggable(orientation = Orientation.Horizontal,
                                     state = rememberDraggableState { delta ->
                                         offsetX += delta
                                         offsetX = offsetX.coerceAtMost(0f)
@@ -248,8 +218,7 @@ fun ActivityGrid() {
                                         } else {
                                             offsetX = 0f
                                         }
-                                    }
-                                )
+                                    })
                         ) {
                             Box(
                                 Modifier
@@ -313,6 +282,20 @@ fun ActivityGrid() {
                                 }
                             }
                         }
+                        Box(
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .offset(x = 80.dp)
+                                .size(rowHeight)
+                                .background(Color(0x00FFFFFF)), contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White
+                            )
+                        }
+
                     }
                     if (index == activities.lastIndex) {
                         // Add new exercise row
@@ -366,16 +349,17 @@ fun ActivityGrid() {
         }
 
         // Display visible checkbox count
-        Text(
-            text = "Visible Checkboxes: $visibleCheckboxCount",
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
-        )
+        /* Text(
+             text = "Visible Checkboxes: $visibleCheckboxCount",
+             color = Color.White,
+             modifier = Modifier
+                 .align(Alignment.BottomCenter)
+                 .padding(bottom = 16.dp)
+         )
+
+         */
     }
 }
-
 
 @Composable
 fun AnimatedCheckCircle2(
@@ -396,25 +380,45 @@ fun AnimatedCheckCircle2(
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    Box(
-        modifier = Modifier
-            .size(size)
-            .background(backgroundColor, RoundedCornerShape(cornerRadius))
-            .indication(interactionSource, indication)
-            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                if (!isEditing) {
-                    onCheckedChange(!isChecked)
-                    if (isChecked) {
-                        isEditing = false
-                        keyboardController?.hide()
-                    }
+    val squareAnimation = rememberInfiniteTransition(label = "")
+    val squareAlpha by squareAnimation.animateFloat(
+        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
+            animation = tween(1000), repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    Box(modifier = Modifier
+        .size(size)
+        .drawBehind {
+            if (isChecked) {
+                val animatedSize = size.toPx() + 10.dp.toPx() * squareAlpha
+                val offset = (animatedSize - size.toPx()) / 2
+
+                drawRoundRect(
+                    color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
+                    topLeft = Offset(-offset, -offset),
+                    size = Size(animatedSize, animatedSize),
+                    cornerRadius = CornerRadius(cornerRadius.toPx()),
+                    style = Stroke(width = 2.dp.toPx())
+                )
+            }
+        }
+        .background(backgroundColor, RoundedCornerShape(cornerRadius))
+        .indication(interactionSource, indication)
+        .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+            if (!isEditing) {
+                onCheckedChange(!isChecked)
+                if (isChecked) {
+                    isEditing = false
+                    keyboardController?.hide()
                 }
-            }, onLongClick = {
-                if (!isChecked) {
-                    isEditing = true
-                    editableLabel = ""
-                }
-            }), contentAlignment = Alignment.Center
+            }
+        }, onLongClick = {
+            if (!isChecked) {
+                isEditing = true
+                editableLabel = ""
+            }
+        }), contentAlignment = Alignment.Center
     ) {
         if (!isChecked) {
             if (isEditing) {
@@ -466,9 +470,7 @@ fun AnimatedCheckCircle2(
 
 @Composable
 fun LabelProgressIndicator(
-    label: String,
-    progress: Float,
-    modifier: Modifier = Modifier
+    label: String, progress: Float, modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
@@ -482,10 +484,8 @@ fun LabelProgressIndicator(
     LaunchedEffect(progress >= 1f) {
         if (progress >= 1f) {
             phase.animateTo(
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
+                targetValue = 1f, animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
                 )
             )
         } else {
@@ -493,52 +493,54 @@ fun LabelProgressIndicator(
         }
     }
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF37474F))
-            .drawWithContent {
-                val strokeWidth = 4.dp.toPx()
-                val cornerRadius = 16.dp.toPx()
+    Box(modifier = modifier
+        .padding(start = 0.dp)
+        .drawBehind {
+            val strokeWidth = 4.dp.toPx()
+            val cornerRadius = 16.dp.toPx()
 
-                // Draw progress
-                drawRoundRect(
-                    color = Color(0xFF4CAF50),
-                    topLeft = Offset.Zero,
-                    size = Size(size.width * animatedProgress, size.height),
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
-                    style = Fill
+            // Draw outline
+            drawRoundRect(
+                color = outlineColor,
+                topLeft = Offset(-strokeWidth / 2, -strokeWidth / 2),
+                size = Size(size.width + strokeWidth, size.height + strokeWidth),
+                cornerRadius = CornerRadius(
+                    cornerRadius + strokeWidth / 2, cornerRadius + strokeWidth / 2
+                ),
+                style = Stroke(
+                    width = strokeWidth, pathEffect = if (progress >= 1f) {
+                        PathEffect.dashPathEffect(
+                            floatArrayOf(20f, 20f), phase = phase.value * 40f
+                        )
+                    } else null
                 )
+            )
+        }
+        .clip(RoundedCornerShape(16.dp))
+        .background(Color(0xFF37474F))
+        .drawWithContent {
+            val cornerRadius = 16.dp.toPx()
 
-                // Draw content (label)
-                drawContent()
+            // Draw progress
+            drawRoundRect(
+                color = Color(0xFF4CAF50),
+                topLeft = Offset.Zero,
+                size = Size(size.width * animatedProgress, size.height),
+                cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                style = Fill
+            )
 
-                // Draw outline
-                drawRoundRect(
-                    color = outlineColor,
-                    topLeft = Offset.Zero,
-                    size = size,
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
-                    style = Stroke(
-                        width = strokeWidth,
-                        pathEffect = if (progress >= 1f) {
-                            PathEffect.dashPathEffect(
-                                floatArrayOf(20f, 20f),
-                                phase = phase.value * 40f
-                            )
-                        } else null
-                    )
-                )
-            },
-        contentAlignment = Alignment.Center
+            // Draw content (label)
+            drawContent()
+        }, contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             color = Color.White,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 1,
+            overflow = TextOverflow.Visible,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(1.dp)
         )
     }
 }
