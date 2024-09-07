@@ -17,9 +17,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             RepsTrackerTheme {
                 FitnessTrackerUI()
-                //CircleProgressBar()
-               // AnimatedCheckCircle()
-
             }
         }
     }
@@ -37,8 +34,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     RepsTrackerTheme {
-        //CircleProgressBar()
-       // AnimatedCheckCircle()
         FitnessTrackerUI()
     }
 }

@@ -45,7 +45,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
@@ -55,7 +54,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -652,33 +650,268 @@ fun WorkoutTypeButton(text: String, isSelected: Boolean) {
     }
 }
 
-@Composable
-fun WeeklyProgressBar() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF3F51B5))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            ActivityGrid()
 
+@OptIn(ExperimentalFoundationApi::class)
+@Preview
+@Composable
+fun ActivityGrid2() {
+    val activities =
+        remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
+    val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
+    var zoomFactor by remember { mutableFloatStateOf(1f) }
+    val visibleDays by remember {
+        derivedStateOf {
+            val visibleCount = (allDays.size / zoomFactor).toInt().coerceIn(3, allDays.size)
+            allDays.take(visibleCount)
         }
     }
-}
 
-@Composable
-fun AddButton() {
-    Box(
-        modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
-    ) {
-        FloatingActionButton(
-            onClick = { /* Handle click */ }, containerColor = Color.Red, contentColor = Color.White
+    var checkStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { false } }) }
+    var labelStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { "40" } }) }
+
+    val state = rememberTransformableState { zoomChange, _, _ ->
+        val zoomIncrement = if (zoomChange > 1f) 0.09f else -0.09f
+        zoomFactor = (zoomFactor + zoomIncrement).coerceIn(1f, 1.6f)
+    }
+    val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80.0F, 200.0F).dp } }
+
+    val visibleCheckboxCount by remember {
+        derivedStateOf {
+            val visibleItemsInfo = lazyListState.layoutInfo.visibleItemsInfo
+            val firstVisibleRow = visibleItemsInfo.firstOrNull()?.index ?: 0
+            val lastVisibleRow = visibleItemsInfo.lastOrNull()?.index ?: 0
+            (lastVisibleRow - firstVisibleRow + 1) * visibleDays.size
+        }
+    }
+
+    var newExerciseName by remember { mutableStateOf("") }
+
+    Box {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add")
+            // Header row
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .height(rowHeight)
+                        .padding(start = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        "Exercise", color = Color.White
+                    )
+                }
+                visibleDays.forEach { day ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(rowHeight), contentAlignment = Alignment.Center
+                    ) {
+                        Text(day, color = Color.White, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+
+            LazyColumn(
+                state = lazyListState,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
+                    var offsetX by remember { mutableFloatStateOf(0f) }
+                    val dismissThreshold = -200f
+
+                    val animatedOffset by animateFloatAsState(
+                        targetValue = offsetX, animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ), label = ""
+                    )
+
+                    val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
+                    val totalCount = visibleDays.size
+                    val progress = remember(checkedCount, totalCount) {
+                        if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
+                    }
+
+                    Box(
+                        Modifier
+                            .padding(0.dp)
+                            .animateItemPlacement(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                    ) {
+                        // Delete button (hidden off-screen to the right)
+
+                        // Main row content
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 0.dp, top = 16.dp, bottom = 0.dp)
+                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                                .draggable(orientation = Orientation.Horizontal,
+                                    state = rememberDraggableState { delta ->
+                                        offsetX += delta
+                                        offsetX = offsetX.coerceAtMost(0f)
+                                    },
+                                    onDragStopped = {
+                                        if (offsetX < dismissThreshold) {
+                                            coroutineScope.launch {
+                                                activities.removeAt(index)
+                                                checkStates = checkStates
+                                                    .toMutableList()
+                                                    .apply { removeAt(index) }
+                                                labelStates = labelStates
+                                                    .toMutableList()
+                                                    .apply { removeAt(index) }
+                                            }
+                                        } else {
+                                            offsetX = 0f
+                                        }
+                                    })
+                        ) {
+                            Box(
+                                Modifier
+                                    .weight(1.5f)
+                                    .height(rowHeight)
+                                    .padding(start = 16.dp, end = 8.dp)
+                                    .size((rowHeight.value * 0.6).dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                LabelProgressIndicator(
+                                    label = activity,
+                                    progress = progress,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            visibleDays.forEachIndexed { colIndex, _ ->
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .height(rowHeight),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val labelValue =
+                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "40"
+                                    AnimatedCheckCircle2(
+                                        isChecked = checkStates.getOrNull(index)
+                                            ?.getOrNull(colIndex) ?: false,
+                                        onCheckedChange = { newState ->
+                                            checkStates = checkStates.mapIndexed { rowIdx, row ->
+                                                if (rowIdx == index) {
+                                                    row.mapIndexed { colIdx, col ->
+                                                        if (colIdx == colIndex) newState else col
+                                                    }
+                                                } else row
+                                            }
+                                        },
+                                        size = (rowHeight.value * 0.6).dp,
+                                        label = labelValue,
+                                        onLabelChange = { newLabel ->
+                                            labelStates = labelStates.mapIndexed { rowIdx, row ->
+                                                if (rowIdx == index) {
+                                                    row.mapIndexed { colIdx, col ->
+                                                        if (colIdx == colIndex) {
+                                                            newLabel
+                                                        } else {
+                                                            val prevValue = col.toIntOrNull() ?: 40
+                                                            val newValue =
+                                                                if (colIdx == colIndex + 1) {
+                                                                    (newLabel.toIntOrNull()
+                                                                        ?: prevValue) + 10
+                                                                } else {
+                                                                    prevValue
+                                                                }
+                                                            newValue.toString()
+                                                        }
+                                                    }
+                                                } else row
+
+
+                                            }
+                                        })
+                                }
+                            }
+                        }
+                        Box(
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .offset(x = 80.dp)
+                                .size(rowHeight)
+                                .background(Color(0x00FFFFFF)), contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White
+                            )
+                        }
+
+                    }
+                    if (index == activities.lastIndex) {
+                        // Add new exercise row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextField(
+                                value = newExerciseName,
+                                onValueChange = { newExerciseName = it },
+                                label = { Text("New Exercise", color = Color.White) },
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedTextColor = Color.White,
+                                    focusedTextColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedIndicatorColor = Color.White,
+                                    unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    if (newExerciseName.isNotBlank()) {
+                                        activities.add(newExerciseName)
+                                        checkStates = checkStates.toMutableList().apply {
+                                            add(List(allDays.size) { false })
+                                        }
+                                        labelStates = labelStates.toMutableList().apply {
+                                            add(List(allDays.size) { "40" })
+                                        }
+                                        newExerciseName = ""
+                                        coroutineScope.launch {
+                                            lazyListState.animateScrollToItem(activities.size - 1)
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                            ) {
+                                Text("Add", color = Color.Black)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
