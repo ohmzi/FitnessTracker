@@ -81,6 +81,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -102,17 +103,17 @@ import kotlin.math.roundToInt
 fun ActivityGrid() {
     val activities =
         remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
-    val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
+    val allSets = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
     var zoomFactor by remember { mutableFloatStateOf(1f) }
-    val visibleDays by remember {
+    val visibleSets by remember {
         derivedStateOf {
-            val visibleCount = (allDays.size / zoomFactor).toInt().coerceIn(3, allDays.size)
-            allDays.take(visibleCount)
+            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
+            allSets.take(visibleCount)
         }
     }
 
-    var checkStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { false } }) }
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { "40" } }) }
+    var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
+    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
 
     val state = rememberTransformableState { zoomChange, _, _ ->
         zoomFactor = (zoomFactor * zoomChange).coerceIn(1f, 2f)
@@ -134,24 +135,24 @@ fun ActivityGrid() {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp)
+                    .padding(start = 30.dp)
             ) {
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .height(rowHeight),
+                        .height(rowHeight / 2),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
                         "Type", color = Color.White
                     )
                 }
-                visibleDays.forEach { day ->
+                visibleSets.forEach { day ->
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(rowHeight), contentAlignment = Alignment.Center
+                            .height(rowHeight / 2), contentAlignment = Alignment.Center
                     ) {
                         Text(day, color = Color.White, textAlign = TextAlign.Center)
                     }
@@ -160,7 +161,7 @@ fun ActivityGrid() {
 
             LazyColumn(
                 state = lazyListState,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
@@ -177,7 +178,7 @@ fun ActivityGrid() {
                     )
 
                     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
-                    val totalCount = visibleDays.size
+                    val totalCount = visibleSets.size
                     val progress = remember(checkedCount, totalCount) {
                         if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
                     }
@@ -196,7 +197,7 @@ fun ActivityGrid() {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(start = 0.dp, top = 16.dp, bottom = 0.dp)
+                                .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                                 .draggable(
                                     orientation = Orientation.Horizontal,
@@ -234,7 +235,7 @@ fun ActivityGrid() {
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }
-                            visibleDays.forEachIndexed { colIndex, _ ->
+                            visibleSets.forEachIndexed { colIndex, _ ->
                                 Box(
                                     Modifier
                                         .weight(1f)
@@ -242,7 +243,7 @@ fun ActivityGrid() {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val labelValue =
-                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "40"
+                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "50"
                                     AnimatedCheckCircle2(
                                         isChecked = checkStates.getOrNull(index)
                                             ?.getOrNull(colIndex) ?: false,
@@ -260,19 +261,18 @@ fun ActivityGrid() {
                                         onLabelChange = { newLabel ->
                                             labelStates = labelStates.mapIndexed { rowIdx, row ->
                                                 if (rowIdx == index) {
+                                                    val newLabelInt = newLabel.toIntOrNull()
+                                                        ?: return@mapIndexed row
                                                     row.mapIndexed { colIdx, col ->
-                                                        if (colIdx == colIndex) {
-                                                            newLabel
-                                                        } else {
-                                                            val prevValue = col.toIntOrNull() ?: 40
-                                                            val newValue =
-                                                                if (colIdx == colIndex + 1) {
-                                                                    (newLabel.toIntOrNull()
-                                                                        ?: prevValue) + 10
-                                                                } else {
-                                                                    prevValue
-                                                                }
-                                                            newValue.toString()
+                                                        when {
+                                                            colIdx == colIndex -> newLabel
+                                                            colIdx > colIndex -> {
+                                                                val increment =
+                                                                    (colIdx - colIndex) * 10
+                                                                (newLabelInt + increment).toString()
+                                                            }
+
+                                                            else -> col
                                                         }
                                                     }
                                                 } else row
@@ -327,10 +327,10 @@ fun ActivityGrid() {
                                     if (newExerciseName.isNotBlank()) {
                                         activities.add(newExerciseName)
                                         checkStates = checkStates.toMutableList().apply {
-                                            add(List(allDays.size) { false })
+                                            add(List(allSets.size) { false })
                                         }
                                         labelStates = labelStates.toMutableList().apply {
-                                            add(List(allDays.size) { "40" })
+                                            add(List(allSets.size) { "40" })
                                         }
                                         newExerciseName = ""
                                         coroutineScope.launch {
@@ -430,6 +430,7 @@ fun AnimatedCheckCircle2(
                         isEditing = false
                         keyboardController?.hide()
                     }),
+                    cursorBrush = SolidColor(Color.Red),
                     decorationBox = { innerTextField ->
                         Box(
                             contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()
@@ -483,7 +484,7 @@ fun LabelProgressIndicator(
     }
 
     Box(modifier = modifier
-        .padding(start = 0.dp, top = 16.dp, bottom = 16.dp)
+        .padding(start = 0.dp, top = 14.dp, bottom = 14.dp)
         .drawBehind {
 
             val strokeWidth = 4.dp.toPx()
