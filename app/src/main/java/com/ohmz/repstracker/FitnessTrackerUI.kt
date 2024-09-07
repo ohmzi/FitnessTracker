@@ -3,6 +3,7 @@
 package com.ohmz.repstracker
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -414,23 +415,20 @@ fun FitnessTrackerUI() {
 fun ProgressCircle(progress: Float) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 1000, easing = FastOutLinearInEasing),
         label = ""
     )
 
-    val color = if (progress >= 1f) Color(0xFF4CAF50) else Color.Red
-    val backgroundColor = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6)
-    val outlineColor = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6)
+    val color = if (animatedProgress >= 1f) Color(0xFF4CAF50) else Color.Red
+    val backgroundColor = if (animatedProgress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6)
 
     val phase = remember { Animatable(0f) }
 
     LaunchedEffect(progress >= 1f) {
         if (progress >= 1f) {
             phase.animateTo(
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
+                targetValue = 1f, animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
                 )
             )
         } else {
@@ -439,37 +437,39 @@ fun ProgressCircle(progress: Float) {
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(100.dp)) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = (size.minDimension - 8.dp.toPx()) / 2f
             val strokeWidth = 8.dp.toPx()
+            val sweepAngle = animatedProgress * 360f
 
             // Draw background circle
             drawCircle(
-                color = backgroundColor,
-                radius = radius,
-                center = center,
-                style = Stroke(width = strokeWidth)
-            )
-
-            val sweepAngle = animatedProgress * 360f
-            drawCircle(
-                color = outlineColor,
-                radius = radius,
-                center = center,
-                style = Stroke(
-                    width = strokeWidth / 2,
-                    pathEffect = if (progress >= 1f) {
+                color = backgroundColor, radius = if (animatedProgress >= 1f) {
+                    radius + 12f
+                } else {
+                    radius
+                }, center = center, style = Stroke(
+                    width = strokeWidth, pathEffect = if (animatedProgress >= 1f) {
                         PathEffect.dashPathEffect(
-                            floatArrayOf(20f, 20f),
-                            phase = phase.value * 40f
+                            floatArrayOf(20f, 20f), phase = phase.value * 40f
                         )
                     } else null
+
                 )
             )
+
+            if (animatedProgress >= 1f) {
+                drawCircle(
+                    color = backgroundColor, radius = radius,
+                    center = center,
+                    style = Fill
+                )
+            }
+
+
             // Draw progress arc or full circle
             drawArc(
                 color = color,
@@ -493,9 +493,7 @@ fun ProgressCircle(progress: Float) {
                 color = Color.White
             )
             Text(
-                text = "Completed",
-                fontSize = 10.sp,
-                color = Color.White
+                text = "Completed", fontSize = 10.sp, color = Color.White
             )
         }
     }
@@ -596,34 +594,35 @@ fun ActivityGrid(
                             )
                     ) {
                         // Main row content
-                        Row(Modifier
-                            .fillMaxWidth()
-                            .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
-                            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                            .draggable(orientation = Orientation.Horizontal,
-                                state = rememberDraggableState { delta ->
-                                    offsetX += delta
-                                    offsetX = offsetX.coerceAtMost(0f)
-                                },
-                                onDragStopped = {
-                                    if (offsetX < dismissThreshold) {
-                                        // Remove the activity
-                                        val newActivities = activities
-                                            .toMutableList()
-                                            .apply { removeAt(index) }
-                                        val newCheckStates = checkStates
-                                            .toMutableList()
-                                            .apply { removeAt(index) }
-                                        labelStates = labelStates
-                                            .toMutableList()
-                                            .apply { removeAt(index) }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
+                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                                .draggable(orientation = Orientation.Horizontal,
+                                    state = rememberDraggableState { delta ->
+                                        offsetX += delta
+                                        offsetX = offsetX.coerceAtMost(0f)
+                                    },
+                                    onDragStopped = {
+                                        if (offsetX < dismissThreshold) {
+                                            // Remove the activity
+                                            val newActivities = activities
+                                                .toMutableList()
+                                                .apply { removeAt(index) }
+                                            val newCheckStates = checkStates
+                                                .toMutableList()
+                                                .apply { removeAt(index) }
+                                            labelStates = labelStates
+                                                .toMutableList()
+                                                .apply { removeAt(index) }
 
-                                        onActivitiesChange(newActivities)
-                                        onCheckStateChange(newCheckStates)
-                                    } else {
-                                        offsetX = 0f
-                                    }
-                                })
+                                            onActivitiesChange(newActivities)
+                                            onCheckStateChange(newCheckStates)
+                                        } else {
+                                            offsetX = 0f
+                                        }
+                                    })
                         ) {
                             Box(
                                 Modifier
