@@ -39,10 +39,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -371,7 +374,15 @@ fun WorkoutTypeButton(text: String, isSelected: Boolean, onClick: () -> Unit = {
 @Composable
 fun FitnessTrackerUI() {
     var activities by remember {
-        mutableStateOf(listOf("Shoulder Press", "Chest Press", "Lateral raises"))
+        mutableStateOf(
+            listOf(
+                "Shoulder Press",
+                "Curls",
+                "Chest Press",
+                "Lateral raises",
+                "Leg raises"
+            )
+        )
     }
     val allSets = remember { listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6") }
     var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
@@ -387,8 +398,7 @@ fun FitnessTrackerUI() {
     }
 
     val density = LocalDensity.current
-    val topBarHeight = 80.dp
-    val expandedOffset = -200.dp
+    val expandedOffset = -16.dp
 
     val animatedOffset by animateFloatAsState(
         targetValue = if (isExpanded) with(density) { expandedOffset.toPx() } else 0f,
@@ -399,6 +409,8 @@ fun FitnessTrackerUI() {
         targetValue = if (isExpanded) 100f else 300f,
         animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
     )
+
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
@@ -413,23 +425,30 @@ fun FitnessTrackerUI() {
                 )
             )
     ) {
-        Column {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (isExpanded) {
+                        Modifier.verticalScroll(scrollState)
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
             Spacer(modifier = Modifier.height(30.dp))
             TopBar()
-            Spacer(modifier = Modifier.height(180.dp))
 
-            // Content below TopBar
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .offset { IntOffset(0, animatedOffset.roundToInt()) }
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         ProgressCircle(
@@ -445,31 +464,110 @@ fun FitnessTrackerUI() {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
-                        ActivityGrid(
-                            activities = activities,
-                            allSets = allSets,
-                            checkStates = checkStates,
-                            onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
-                            onActivitiesChange = { newActivities ->
-                                activities = newActivities
-                                checkStates = List(activities.size) { rowIndex ->
-                                    checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
-                                }
-                            },
-                            onVisibleSetsCountChange = { newVisibleSetsCount ->
-                                visibleSetsCount = newVisibleSetsCount
-                            },
-                            isExpanded = isExpanded
-                        )
-                    }
+                    ActivityGrid(
+                        activities = activities,
+                        allSets = allSets,
+                        checkStates = checkStates,
+                        onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
+                        onActivitiesChange = { newActivities ->
+                            activities = newActivities
+                            checkStates = List(activities.size) { rowIndex ->
+                                checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
+                            }
+                        },
+                        onVisibleSetsCountChange = { newVisibleSetsCount ->
+                            visibleSetsCount = newVisibleSetsCount
+                        },
+                        isExpanded = isExpanded,
+                        scrollState = scrollState
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ActivityGrid(
+    activities: List<String>,
+    allSets: List<String>,
+    checkStates: List<List<Boolean>>,
+    onCheckStateChange: (List<List<Boolean>>) -> Unit,
+    onActivitiesChange: (List<String>) -> Unit,
+    onVisibleSetsCountChange: (Int) -> Unit,
+    isExpanded: Boolean,
+    scrollState: ScrollState
+) {
+    var zoomFactor by remember { mutableStateOf(1f) }
+    val visibleSets by remember {
+        derivedStateOf {
+            val visibleCount = (allSets.size / zoomFactor).coerceIn(3, allSets.size)
+            allSets.take(visibleCount)
+        }
+    }
+
+    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
+
+    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
+
+    var newExerciseName by remember { mutableStateOf("") }
+
+    val visibleSetsCount = (allSets.size / zoomFactor).coerceIn(3, allSets.size)
+    onVisibleSetsCountChange(visibleSetsCount)
+    val alpha by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        animationSpec = tween(durationMillis = 500)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha)
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
+                    if (isExpanded) {
+                        scrollState.scrollTo((scrollState.value - pan.y.toInt()).coerceIn(0, scrollState.maxValue))
+                    }
+                }
+            }
+    ) {
+        HeaderRow(visibleSets, rowHeight)
+
+        activities.forEachIndexed { index, activity ->
+            ActivityRow(
+                activities = activities,
+                activity = activity,
+                index = index,
+                visibleSets = visibleSets,
+                checkStates = checkStates,
+                labelStates = labelStates,
+                rowHeight = rowHeight,
+                onCheckStateChange = onCheckStateChange,
+                onActivitiesChange = onActivitiesChange,
+                onLabelChange = { newLabelStates -> labelStates = newLabelStates }
+            )
+        }
+
+        AddNewExerciseRow(
+            newExerciseName = newExerciseName,
+            onNewExerciseNameChange = { newExerciseName = it },
+            onAddExercise = {
+                if (newExerciseName.isNotBlank()) {
+                    val newActivities = activities + newExerciseName
+                    onActivitiesChange(newActivities)
+                    val newCheckStates = checkStates.toMutableList().apply {
+                        add(List(allSets.size) { false })
+                    }
+                    onCheckStateChange(newCheckStates)
+                    labelStates = labelStates.toMutableList().apply {
+                        add(List(allSets.size) { "40" })
+                    }
+                    newExerciseName = ""
+                }
+            }
+        )
+        Spacer(modifier = Modifier.height(50.dp))
     }
 }
 
@@ -569,84 +667,6 @@ fun ProgressCircle(progress: Float, size: Dp) {
                 color = Color.White
             )
         }
-    }
-}
-
-@Composable
-fun ActivityGrid(
-    activities: List<String>,
-    allSets: List<String>,
-    checkStates: List<List<Boolean>>,
-    onCheckStateChange: (List<List<Boolean>>) -> Unit,
-    onActivitiesChange: (List<String>) -> Unit,
-    onVisibleSetsCountChange: (Int) -> Unit,
-    isExpanded: Boolean
-) {
-    var zoomFactor by remember { mutableStateOf(1f) }
-    val visibleSets by remember {
-        derivedStateOf {
-            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-            allSets.take(visibleCount)
-        }
-    }
-
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
-
-    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
-
-    var newExerciseName by remember { mutableStateOf("") }
-
-    val visibleSetsCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-    onVisibleSetsCountChange(visibleSetsCount)
-    val alpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 500)
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(alpha)
-            .pointerInput(Unit) {
-                detectTransformGestures { _, _, zoom, _ ->
-                    zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
-                }
-            }
-    ) {
-        HeaderRow(visibleSets, rowHeight)
-
-        activities.forEachIndexed { index, activity ->
-            ActivityRow(
-                activities = activities,
-                activity = activity,
-                index = index,
-                visibleSets = visibleSets,
-                checkStates = checkStates,
-                labelStates = labelStates,
-                rowHeight = rowHeight,
-                onCheckStateChange = onCheckStateChange,
-                onActivitiesChange = onActivitiesChange,
-                onLabelChange = { newLabelStates -> labelStates = newLabelStates }
-            )
-        }
-
-        AddNewExerciseRow(
-            newExerciseName = newExerciseName,
-            onNewExerciseNameChange = { newExerciseName = it },
-            onAddExercise = {
-                if (newExerciseName.isNotBlank()) {
-                    val newActivities = activities + newExerciseName
-                    onActivitiesChange(newActivities)
-                    val newCheckStates = checkStates.toMutableList().apply {
-                        add(List(allSets.size) { false })
-                    }
-                    onCheckStateChange(newCheckStates)
-                    labelStates = labelStates.toMutableList().apply {
-                        add(List(allSets.size) { "40" })
-                    }
-                    newExerciseName = ""
-                }
-            }
-        )
     }
 }
 
