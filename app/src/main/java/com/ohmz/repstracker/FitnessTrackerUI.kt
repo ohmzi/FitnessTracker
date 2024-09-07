@@ -1,8 +1,5 @@
 @file:OptIn(ExperimentalFoundationApi::class)
-
 package com.ohmz.repstracker
-
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -63,7 +60,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -97,256 +93,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@Composable
-fun ActivityGrid() {
-    val activities =
-        remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
-    val allSets = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
-    var zoomFactor by remember { mutableFloatStateOf(1f) }
-    val visibleSets by remember {
-        derivedStateOf {
-            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-            allSets.take(visibleCount)
-        }
-    }
-
-    var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
-
-    val state = rememberTransformableState { zoomChange, _, _ ->
-        zoomFactor = (zoomFactor * zoomChange).coerceIn(1f, 2f)
-    }
-    val lazyListState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-
-    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
-
-    var newExerciseName by remember { mutableStateOf("") }
-
-    Box(modifier = Modifier.transformable(state = state)) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Header row
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 30.dp)
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .height(rowHeight / 2),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        "Type", color = Color.White
-                    )
-                }
-                visibleSets.forEach { day ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(rowHeight / 2), contentAlignment = Alignment.Center
-                    ) {
-                        Text(day, color = Color.White, textAlign = TextAlign.Center)
-                    }
-                }
-            }
-
-            LazyColumn(
-                state = lazyListState,
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
-                    var offsetX by remember { mutableFloatStateOf(0f) }
-                    val dismissThreshold = -200f
-
-                    val animatedOffset by animateFloatAsState(
-                        targetValue = offsetX,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        label = ""
-                    )
-
-                    val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
-                    val totalCount = visibleSets.size
-                    val progress = remember(checkedCount, totalCount) {
-                        if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
-                    }
-
-                    Box(
-                        Modifier
-                            .padding(0.dp)
-                            .animateItemPlacement(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            )
-                    ) {
-                        // Main row content
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
-                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .draggable(
-                                    orientation = Orientation.Horizontal,
-                                    state = rememberDraggableState { delta ->
-                                        offsetX += delta
-                                        offsetX = offsetX.coerceAtMost(0f)
-                                    },
-                                    onDragStopped = {
-                                        if (offsetX < dismissThreshold) {
-                                            coroutineScope.launch {
-                                                activities.removeAt(index)
-                                                checkStates = checkStates
-                                                    .toMutableList()
-                                                    .apply { removeAt(index) }
-                                                labelStates = labelStates
-                                                    .toMutableList()
-                                                    .apply { removeAt(index) }
-                                            }
-                                        } else {
-                                            offsetX = 0f
-                                        }
-                                    }
-                                )
-                        ) {
-                            Box(
-                                Modifier
-                                    .weight(1.5f)
-                                    .height(rowHeight)
-                                    .padding(start = 16.dp, end = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                LabelProgressIndicator(
-                                    label = activity,
-                                    progress = progress,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            visibleSets.forEachIndexed { colIndex, _ ->
-                                Box(
-                                    Modifier
-                                        .weight(1f)
-                                        .height(rowHeight),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val labelValue =
-                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "50"
-                                    AnimatedCheckCircle2(
-                                        isChecked = checkStates.getOrNull(index)
-                                            ?.getOrNull(colIndex) ?: false,
-                                        onCheckedChange = { newState ->
-                                            checkStates = checkStates.mapIndexed { rowIdx, row ->
-                                                if (rowIdx == index) {
-                                                    row.mapIndexed { colIdx, col ->
-                                                        if (colIdx == colIndex) newState else col
-                                                    }
-                                                } else row
-                                            }
-                                        },
-                                        size = (rowHeight.value * 0.6).dp,
-                                        label = labelValue,
-                                        onLabelChange = { newLabel ->
-                                            labelStates = labelStates.mapIndexed { rowIdx, row ->
-                                                if (rowIdx == index) {
-                                                    val newLabelInt = newLabel.toIntOrNull()
-                                                        ?: return@mapIndexed row
-                                                    row.mapIndexed { colIdx, col ->
-                                                        when {
-                                                            colIdx == colIndex -> newLabel
-                                                            colIdx > colIndex -> {
-                                                                val increment =
-                                                                    (colIdx - colIndex) * 10
-                                                                (newLabelInt + increment).toString()
-                                                            }
-
-                                                            else -> col
-                                                        }
-                                                    }
-                                                } else row
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        Box(
-                            Modifier
-                                .align(Alignment.CenterEnd)
-                                .offset(x = 80.dp)
-                                .size(rowHeight)
-                                .background(Color(0x00FFFFFF)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                    if (index == activities.lastIndex) {
-                        // Add new exercise row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextField(
-                                value = newExerciseName,
-                                onValueChange = { newExerciseName = it },
-                                label = { Text("New Exercise", color = Color.White) },
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedTextColor = Color.White,
-                                    focusedTextColor = Color.White,
-                                    cursorColor = Color.White,
-                                    focusedIndicatorColor = Color.White,
-                                    unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            )
-                            Button(
-                                onClick = {
-                                    if (newExerciseName.isNotBlank()) {
-                                        activities.add(newExerciseName)
-                                        checkStates = checkStates.toMutableList().apply {
-                                            add(List(allSets.size) { false })
-                                        }
-                                        labelStates = labelStates.toMutableList().apply {
-                                            add(List(allSets.size) { "40" })
-                                        }
-                                        newExerciseName = ""
-                                        coroutineScope.launch {
-                                            lazyListState.animateScrollToItem(activities.size - 1)
-                                        }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                            ) {
-                                Text("Add", color = Color.Black)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun AnimatedCheckCircle2(
@@ -534,35 +280,6 @@ fun LabelProgressIndicator(
     }
 }
 
-@Preview
-@Composable
-fun FitnessTrackerUI() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFFF69B4),  // Pink
-                        Color(0xFFFF8C00),  // Dark Orange
-                        Color(0xFF4169E1)   // Royal Blue
-                    )
-                )
-            )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Spacer(modifier = Modifier.height(30.dp))
-            TopBar()
-            Spacer(modifier = Modifier.height(24.dp))
-            ProgressCircle()
-            Spacer(modifier = Modifier.height(16.dp))
-            WorkoutTypeSection()
-            ActivityGrid()
-        }
-    }
-}
 
 @Composable
 fun TopBar() {
@@ -651,45 +368,128 @@ fun WorkoutTypeButton(text: String, isSelected: Boolean) {
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
-fun ActivityGrid2() {
-    val activities =
-        remember { mutableStateListOf("Shoulder Press", "Chest Press", "Lateral raises") }
-    val allDays = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
-    var zoomFactor by remember { mutableFloatStateOf(1f) }
-    val visibleDays by remember {
+fun FitnessTrackerUI() {
+    var activities by remember {
+        mutableStateOf(
+            listOf(
+                "Shoulder Press",
+                "Chest Press",
+                "Lateral raises"
+            )
+        )
+    }
+    val allSets = listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6")
+
+    var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
+
+    // Calculate overall progress
+    val overallProgress by remember(checkStates) {
         derivedStateOf {
-            val visibleCount = (allDays.size / zoomFactor).toInt().coerceIn(3, allDays.size)
-            allDays.take(visibleCount)
+            val totalChecks = checkStates.sumOf { row -> row.count { it } }
+            val totalPossibleChecks = activities.size * allSets.size
+            if (totalPossibleChecks > 0) totalChecks.toFloat() / totalPossibleChecks else 0f
         }
     }
 
-    var checkStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { false } }) }
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allDays.size) { "40" } }) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFF69B4),  // Pink
+                        Color(0xFFFF8C00),  // Dark Orange
+                        Color(0xFF4169E1)   // Royal Blue
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Spacer(modifier = Modifier.height(30.dp))
+            TopBar()
+            Spacer(modifier = Modifier.height(24.dp))
+            ProgressCircle(progress = overallProgress)
+            Spacer(modifier = Modifier.height(16.dp))
+            WorkoutTypeSection()
+            ActivityGrid(
+                activities = activities,
+                allSets = allSets,
+                checkStates = checkStates,
+                onCheckStateChange = { newCheckStates ->
+                    checkStates = newCheckStates
+                },
+                onActivitiesChange = { newActivities ->
+                    activities = newActivities
+                    checkStates = List(activities.size) { rowIndex ->
+                        checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun ProgressCircle(progress: Float) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.size(100.dp),
+            color = Color.Red,
+            strokeWidth = 8.dp,
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = "Completed",
+                fontSize = 10.sp,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun ActivityGrid(
+    activities: List<String>,
+    allSets: List<String>,
+    checkStates: List<List<Boolean>>,
+    onCheckStateChange: (List<List<Boolean>>) -> Unit,
+    onActivitiesChange: (List<String>) -> Unit
+) {
+    var zoomFactor by remember { mutableFloatStateOf(1f) }
+    val visibleSets by remember {
+        derivedStateOf {
+            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
+            allSets.take(visibleCount)
+        }
+    }
+
+    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
 
     val state = rememberTransformableState { zoomChange, _, _ ->
-        val zoomIncrement = if (zoomChange > 1f) 0.09f else -0.09f
-        zoomFactor = (zoomFactor + zoomIncrement).coerceIn(1f, 1.6f)
+        zoomFactor = (zoomFactor * zoomChange).coerceIn(1f, 2f)
     }
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80.0F, 200.0F).dp } }
-
-    val visibleCheckboxCount by remember {
-        derivedStateOf {
-            val visibleItemsInfo = lazyListState.layoutInfo.visibleItemsInfo
-            val firstVisibleRow = visibleItemsInfo.firstOrNull()?.index ?: 0
-            val lastVisibleRow = visibleItemsInfo.lastOrNull()?.index ?: 0
-            (lastVisibleRow - firstVisibleRow + 1) * visibleDays.size
-        }
-    }
+    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
 
     var newExerciseName by remember { mutableStateOf("") }
 
-    Box {
+    Box(modifier = Modifier.transformable(state = state)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
@@ -699,25 +499,23 @@ fun ActivityGrid2() {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                    .padding(start = 30.dp)
             ) {
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .height(rowHeight)
-                        .padding(start = 16.dp),
+                        .height(rowHeight / 2),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Text(
-                        "Exercise", color = Color.White
-                    )
+                    Text("Type", color = Color.White)
                 }
-                visibleDays.forEach { day ->
+                visibleSets.forEach { day ->
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(rowHeight), contentAlignment = Alignment.Center
+                            .height(rowHeight / 2),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(day, color = Color.White, textAlign = TextAlign.Center)
                     }
@@ -726,7 +524,7 @@ fun ActivityGrid2() {
 
             LazyColumn(
                 state = lazyListState,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(items = activities, key = { index, item -> item }) { index, activity ->
@@ -734,14 +532,16 @@ fun ActivityGrid2() {
                     val dismissThreshold = -200f
 
                     val animatedOffset by animateFloatAsState(
-                        targetValue = offsetX, animationSpec = spring(
+                        targetValue = offsetX,
+                        animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        ), label = ""
+                        ),
+                        label = ""
                     )
 
                     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
-                    val totalCount = visibleDays.size
+                    val totalCount = visibleSets.size
                     val progress = remember(checkedCount, totalCount) {
                         if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
                     }
@@ -756,41 +556,45 @@ fun ActivityGrid2() {
                                 )
                             )
                     ) {
-                        // Delete button (hidden off-screen to the right)
-
                         // Main row content
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(start = 0.dp, top = 16.dp, bottom = 0.dp)
+                                .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .draggable(orientation = Orientation.Horizontal,
+                                .draggable(
+                                    orientation = Orientation.Horizontal,
                                     state = rememberDraggableState { delta ->
                                         offsetX += delta
                                         offsetX = offsetX.coerceAtMost(0f)
                                     },
                                     onDragStopped = {
                                         if (offsetX < dismissThreshold) {
-                                            coroutineScope.launch {
-                                                activities.removeAt(index)
-                                                checkStates = checkStates
+                                            // Remove the activity
+                                            val newActivities =
+                                                activities
                                                     .toMutableList()
                                                     .apply { removeAt(index) }
-                                                labelStates = labelStates
-                                                    .toMutableList()
-                                                    .apply { removeAt(index) }
-                                            }
+                                            val newCheckStates = checkStates
+                                                .toMutableList()
+                                                .apply { removeAt(index) }
+                                            labelStates = labelStates
+                                                .toMutableList()
+                                                .apply { removeAt(index) }
+
+                                            onActivitiesChange(newActivities)
+                                            onCheckStateChange(newCheckStates)
                                         } else {
                                             offsetX = 0f
                                         }
-                                    })
+                                    }
+                                )
                         ) {
                             Box(
                                 Modifier
                                     .weight(1.5f)
                                     .height(rowHeight)
-                                    .padding(start = 16.dp, end = 8.dp)
-                                    .size((rowHeight.value * 0.6).dp),
+                                    .padding(start = 16.dp, end = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 LabelProgressIndicator(
@@ -799,7 +603,7 @@ fun ActivityGrid2() {
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }
-                            visibleDays.forEachIndexed { colIndex, _ ->
+                            visibleSets.forEachIndexed { colIndex, _ ->
                                 Box(
                                     Modifier
                                         .weight(1f)
@@ -807,44 +611,42 @@ fun ActivityGrid2() {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val labelValue =
-                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "40"
+                                        labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "50"
                                     AnimatedCheckCircle2(
                                         isChecked = checkStates.getOrNull(index)
                                             ?.getOrNull(colIndex) ?: false,
                                         onCheckedChange = { newState ->
-                                            checkStates = checkStates.mapIndexed { rowIdx, row ->
+                                            val newCheckStates =
+                                                checkStates.mapIndexed { rowIdx, row ->
                                                 if (rowIdx == index) {
                                                     row.mapIndexed { colIdx, col ->
                                                         if (colIdx == colIndex) newState else col
                                                     }
                                                 } else row
                                             }
+                                            onCheckStateChange(newCheckStates)
                                         },
                                         size = (rowHeight.value * 0.6).dp,
                                         label = labelValue,
                                         onLabelChange = { newLabel ->
                                             labelStates = labelStates.mapIndexed { rowIdx, row ->
                                                 if (rowIdx == index) {
-                                                    row.mapIndexed { colIdx, col ->
-                                                        if (colIdx == colIndex) {
-                                                            newLabel
-                                                        } else {
-                                                            val prevValue = col.toIntOrNull() ?: 40
-                                                            val newValue =
-                                                                if (colIdx == colIndex + 1) {
-                                                                    (newLabel.toIntOrNull()
-                                                                        ?: prevValue) + 10
-                                                                } else {
-                                                                    prevValue
-                                                                }
-                                                            newValue.toString()
+                                                    val baseValue = newLabel.toIntOrNull() ?: 40
+                                                    row.mapIndexed { colIdx, _ ->
+                                                        when {
+                                                            colIdx < colIndex -> row[colIdx]
+                                                            colIdx == colIndex -> newLabel
+                                                            else -> {
+                                                                val increment =
+                                                                    (colIdx - colIndex) * 10
+                                                                (baseValue + increment).toString()
+                                                            }
                                                         }
                                                     }
                                                 } else row
-
-
                                             }
-                                        })
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -853,7 +655,8 @@ fun ActivityGrid2() {
                                 .align(Alignment.CenterEnd)
                                 .offset(x = 80.dp)
                                 .size(rowHeight)
-                                .background(Color(0x00FFFFFF)), contentAlignment = Alignment.Center
+                                .background(Color(0x00FFFFFF)),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -861,53 +664,54 @@ fun ActivityGrid2() {
                                 tint = Color.White
                             )
                         }
-
                     }
-                    if (index == activities.lastIndex) {
-                        // Add new exercise row
-                        Row(
+                }
+                item {
+                    // Add new exercise row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextField(
+                            value = newExerciseName,
+                            onValueChange = { newExerciseName = it },
+                            label = { Text("New Exercise", color = Color.White) },
+                            colors = TextFieldDefaults.colors(
+                                unfocusedTextColor = Color.White,
+                                focusedTextColor = Color.White,
+                                cursorColor = Color.White,
+                                focusedIndicatorColor = Color.White,
+                                unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent
+                            ),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextField(
-                                value = newExerciseName,
-                                onValueChange = { newExerciseName = it },
-                                label = { Text("New Exercise", color = Color.White) },
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedTextColor = Color.White,
-                                    focusedTextColor = Color.White,
-                                    cursorColor = Color.White,
-                                    focusedIndicatorColor = Color.White,
-                                    unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            )
-                            Button(
-                                onClick = {
-                                    if (newExerciseName.isNotBlank()) {
-                                        activities.add(newExerciseName)
-                                        checkStates = checkStates.toMutableList().apply {
-                                            add(List(allDays.size) { false })
-                                        }
-                                        labelStates = labelStates.toMutableList().apply {
-                                            add(List(allDays.size) { "40" })
-                                        }
-                                        newExerciseName = ""
-                                        coroutineScope.launch {
-                                            lazyListState.animateScrollToItem(activities.size - 1)
-                                        }
+                                .weight(1f)
+                                .padding(end = 8.dp)
+                        )
+                        Button(
+                            onClick = {
+                                if (newExerciseName.isNotBlank()) {
+                                    val newActivities = activities + newExerciseName
+                                    onActivitiesChange(newActivities)
+                                    val newCheckStates = checkStates.toMutableList().apply {
+                                        add(List(allSets.size) { false })
                                     }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                            ) {
-                                Text("Add", color = Color.Black)
-                            }
+                                    onCheckStateChange(newCheckStates)
+                                    labelStates = labelStates.toMutableList().apply {
+                                        add(List(allSets.size) { "40" })
+                                    }
+                                    newExerciseName = ""
+                                    coroutineScope.launch {
+                                        lazyListState.animateScrollToItem(activities.size)
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        ) {
+                            Text("Add", color = Color.Black)
                         }
                     }
                 }
