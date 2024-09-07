@@ -224,7 +224,8 @@ fun ActivityGrid2() {
                                 Modifier
                                     .weight(1.5f)
                                     .height(rowHeight)
-                                    .padding(start = 16.dp, end = 8.dp),
+                                    .padding(start = 16.dp, end = 8.dp)
+                                    .size((rowHeight.value * 0.6).dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 LabelProgressIndicator(

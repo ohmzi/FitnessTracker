@@ -134,18 +134,17 @@ fun ActivityGrid() {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                    .padding(start = 24.dp)
             ) {
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .height(rowHeight)
-                        .padding(start = 16.dp),
+                        .height(rowHeight),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        "Exercise", color = Color.White
+                        "Type", color = Color.White
                     )
                 }
                 visibleDays.forEach { day ->
@@ -484,8 +483,9 @@ fun LabelProgressIndicator(
     }
 
     Box(modifier = modifier
-        .padding(start = 0.dp)
+        .padding(start = 0.dp, top = 16.dp, bottom = 16.dp)
         .drawBehind {
+
             val strokeWidth = 4.dp.toPx()
             val cornerRadius = 16.dp.toPx()
 
@@ -530,7 +530,7 @@ fun LabelProgressIndicator(
             maxLines = 1,
             overflow = TextOverflow.Visible,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(1.dp)
+            modifier = Modifier.padding(0.dp)
         )
     }
 }
