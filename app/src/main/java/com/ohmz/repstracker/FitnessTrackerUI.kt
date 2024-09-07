@@ -1,5 +1,7 @@
 @file:OptIn(ExperimentalFoundationApi::class)
+
 package com.ohmz.repstracker
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -11,6 +13,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -50,7 +53,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -76,6 +78,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -308,28 +311,6 @@ fun TopBar() {
 }
 
 @Composable
-fun ProgressCircle() {
-    Box(
-        modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            progress = { 0.75f },
-            modifier = Modifier.size(100.dp),
-            color = Color.Red,
-            strokeWidth = 8.dp,
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "75%", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White
-            )
-            Text(
-                text = "Completed", fontSize = 10.sp, color = Color.White
-            )
-        }
-    }
-}
-
-@Composable
 fun WorkoutTypeSection() {
     Card(
         modifier = Modifier
@@ -374,9 +355,7 @@ fun FitnessTrackerUI() {
     var activities by remember {
         mutableStateOf(
             listOf(
-                "Shoulder Press",
-                "Chest Press",
-                "Lateral raises"
+                "Shoulder Press", "Chest Press", "Lateral raises"
             )
         )
     }
@@ -415,8 +394,7 @@ fun FitnessTrackerUI() {
             ProgressCircle(progress = overallProgress)
             Spacer(modifier = Modifier.height(16.dp))
             WorkoutTypeSection()
-            ActivityGrid(
-                activities = activities,
+            ActivityGrid(activities = activities,
                 allSets = allSets,
                 checkStates = checkStates,
                 onCheckStateChange = { newCheckStates ->
@@ -427,27 +405,89 @@ fun FitnessTrackerUI() {
                     checkStates = List(activities.size) { rowIndex ->
                         checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
                     }
-                }
-            )
+                })
         }
     }
 }
 
 @Composable
 fun ProgressCircle(progress: Float) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = ""
+    )
+
+    val color = if (progress >= 1f) Color(0xFF4CAF50) else Color.Red
+    val backgroundColor = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6)
+    val outlineColor = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6)
+
+    val phase = remember { Animatable(0f) }
+
+    LaunchedEffect(progress >= 1f) {
+        if (progress >= 1f) {
+            phase.animateTo(
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                )
+            )
+        } else {
+            phase.snapTo(0f)
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.size(100.dp),
-            color = Color.Red,
-            strokeWidth = 8.dp,
-        )
+        Canvas(modifier = Modifier.size(100.dp)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val radius = (size.minDimension - 8.dp.toPx()) / 2f
+            val strokeWidth = 8.dp.toPx()
+
+            // Draw background circle
+            drawCircle(
+                color = backgroundColor,
+                radius = radius,
+                center = center,
+                style = Stroke(width = strokeWidth)
+            )
+
+            val sweepAngle = animatedProgress * 360f
+            drawCircle(
+                color = outlineColor,
+                radius = radius,
+                center = center,
+                style = Stroke(
+                    width = strokeWidth / 2,
+                    pathEffect = if (progress >= 1f) {
+                        PathEffect.dashPathEffect(
+                            floatArrayOf(20f, 20f),
+                            phase = phase.value * 40f
+                        )
+                    } else null
+                )
+            )
+            // Draw progress arc or full circle
+            drawArc(
+                color = color,
+                startAngle = -90f,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(4.dp.toPx(), 4.dp.toPx()),
+                size = Size(size.width - 8.dp.toPx(), size.height - 8.dp.toPx()),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+
+            // Draw outline
+
+        }
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "${(progress * 100).toInt()}%",
+                text = "${(animatedProgress * 100).toInt()}%",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -460,6 +500,7 @@ fun ProgressCircle(progress: Float) {
         }
     }
 }
+
 
 @Composable
 fun ActivityGrid(
@@ -532,12 +573,10 @@ fun ActivityGrid(
                     val dismissThreshold = -200f
 
                     val animatedOffset by animateFloatAsState(
-                        targetValue = offsetX,
-                        animationSpec = spring(
+                        targetValue = offsetX, animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        ),
-                        label = ""
+                        ), label = ""
                     )
 
                     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
@@ -557,38 +596,34 @@ fun ActivityGrid(
                             )
                     ) {
                         // Main row content
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
-                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .draggable(
-                                    orientation = Orientation.Horizontal,
-                                    state = rememberDraggableState { delta ->
-                                        offsetX += delta
-                                        offsetX = offsetX.coerceAtMost(0f)
-                                    },
-                                    onDragStopped = {
-                                        if (offsetX < dismissThreshold) {
-                                            // Remove the activity
-                                            val newActivities =
-                                                activities
-                                                    .toMutableList()
-                                                    .apply { removeAt(index) }
-                                            val newCheckStates = checkStates
-                                                .toMutableList()
-                                                .apply { removeAt(index) }
-                                            labelStates = labelStates
-                                                .toMutableList()
-                                                .apply { removeAt(index) }
+                        Row(Modifier
+                            .fillMaxWidth()
+                            .padding(start = 0.dp, top = 0.dp, bottom = 0.dp)
+                            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                            .draggable(orientation = Orientation.Horizontal,
+                                state = rememberDraggableState { delta ->
+                                    offsetX += delta
+                                    offsetX = offsetX.coerceAtMost(0f)
+                                },
+                                onDragStopped = {
+                                    if (offsetX < dismissThreshold) {
+                                        // Remove the activity
+                                        val newActivities = activities
+                                            .toMutableList()
+                                            .apply { removeAt(index) }
+                                        val newCheckStates = checkStates
+                                            .toMutableList()
+                                            .apply { removeAt(index) }
+                                        labelStates = labelStates
+                                            .toMutableList()
+                                            .apply { removeAt(index) }
 
-                                            onActivitiesChange(newActivities)
-                                            onCheckStateChange(newCheckStates)
-                                        } else {
-                                            offsetX = 0f
-                                        }
+                                        onActivitiesChange(newActivities)
+                                        onCheckStateChange(newCheckStates)
+                                    } else {
+                                        offsetX = 0f
                                     }
-                                )
+                                })
                         ) {
                             Box(
                                 Modifier
@@ -612,18 +647,17 @@ fun ActivityGrid(
                                 ) {
                                     val labelValue =
                                         labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "50"
-                                    AnimatedCheckCircle2(
-                                        isChecked = checkStates.getOrNull(index)
-                                            ?.getOrNull(colIndex) ?: false,
+                                    AnimatedCheckCircle2(isChecked = checkStates.getOrNull(index)
+                                        ?.getOrNull(colIndex) ?: false,
                                         onCheckedChange = { newState ->
                                             val newCheckStates =
                                                 checkStates.mapIndexed { rowIdx, row ->
-                                                if (rowIdx == index) {
-                                                    row.mapIndexed { colIdx, col ->
-                                                        if (colIdx == colIndex) newState else col
-                                                    }
-                                                } else row
-                                            }
+                                                    if (rowIdx == index) {
+                                                        row.mapIndexed { colIdx, col ->
+                                                            if (colIdx == colIndex) newState else col
+                                                        }
+                                                    } else row
+                                                }
                                             onCheckStateChange(newCheckStates)
                                         },
                                         size = (rowHeight.value * 0.6).dp,
@@ -645,8 +679,7 @@ fun ActivityGrid(
                                                     }
                                                 } else row
                                             }
-                                        }
-                                    )
+                                        })
                                 }
                             }
                         }
@@ -655,8 +688,7 @@ fun ActivityGrid(
                                 .align(Alignment.CenterEnd)
                                 .offset(x = 80.dp)
                                 .size(rowHeight)
-                                .background(Color(0x00FFFFFF)),
-                            contentAlignment = Alignment.Center
+                                .background(Color(0x00FFFFFF)), contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -708,8 +740,7 @@ fun ActivityGrid(
                                         lazyListState.animateScrollToItem(activities.size)
                                     }
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                            }, colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                         ) {
                             Text("Add", color = Color.Black)
                         }
