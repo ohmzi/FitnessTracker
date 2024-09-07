@@ -2,7 +2,6 @@
 
 package com.ohmz.repstracker
 
-import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -40,7 +39,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -63,10 +61,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
@@ -81,6 +79,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -93,7 +92,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -328,7 +326,7 @@ fun TopBar() {
 }
 
 @Composable
-fun WorkoutTypeSection() {
+fun WorkoutTypeSection(onPowerClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -348,16 +346,16 @@ fun WorkoutTypeSection() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 WorkoutTypeButton("Cardio", isSelected = false)
-                WorkoutTypeButton("Power", isSelected = true)
+                WorkoutTypeButton("Power", isSelected = true, onClick = onPowerClick)
             }
         }
     }
 }
 
 @Composable
-fun WorkoutTypeButton(text: String, isSelected: Boolean) {
+fun WorkoutTypeButton(text: String, isSelected: Boolean, onClick: () -> Unit = {}) {
     Button(
-        onClick = { /* Handle click */ },
+        onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) Color.Red else Color.LightGray
         ),
@@ -376,9 +374,9 @@ fun FitnessTrackerUI() {
         mutableStateOf(listOf("Shoulder Press", "Chest Press", "Lateral raises"))
     }
     val allSets = remember { listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6") }
-
     var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
     var visibleSetsCount by remember { mutableStateOf(allSets.size) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     val overallProgress by remember(checkStates, visibleSetsCount) {
         derivedStateOf {
@@ -388,51 +386,95 @@ fun FitnessTrackerUI() {
         }
     }
 
+    val density = LocalDensity.current
+    val topBarHeight = 80.dp
+    val expandedOffset = -200.dp
+
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isExpanded) with(density) { expandedOffset.toPx() } else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+    )
+
+    val circleSize by animateFloatAsState(
+        targetValue = if (isExpanded) 100f else 300f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFF69B4),  // Pink
-                        Color(0xFFFF8C00),  // Dark Orange
-                        Color(0xFF4169E1)   // Royal Blue
+                        Color(0xFFFF69B4),
+                        Color(0xFFFF8C00),
+                        Color(0xFF4169E1)
                     )
                 )
             )
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Column {
             Spacer(modifier = Modifier.height(30.dp))
             TopBar()
-            Spacer(modifier = Modifier.height(24.dp))
-            ProgressCircle(progress = overallProgress)
-            Spacer(modifier = Modifier.height(16.dp))
-            WorkoutTypeSection()
-            ActivityGrid(
-                activities = activities,
-                allSets = allSets,
-                checkStates = checkStates,
-                onCheckStateChange = { newCheckStates ->
-                    checkStates = newCheckStates
-                },
-                onActivitiesChange = { newActivities ->
-                    activities = newActivities
-                    checkStates = List(activities.size) { rowIndex ->
-                        checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
+            Spacer(modifier = Modifier.height(180.dp))
+
+            // Content below TopBar
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(0, animatedOffset.roundToInt()) }
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ProgressCircle(
+                            progress = overallProgress,
+                            size = circleSize.dp
+                        )
                     }
-                },
-                onVisibleSetsCountChange = { newVisibleSetsCount ->
-                    visibleSetsCount = newVisibleSetsCount
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    WorkoutTypeSection(
+                        onPowerClick = { isExpanded = !isExpanded }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        ActivityGrid(
+                            activities = activities,
+                            allSets = allSets,
+                            checkStates = checkStates,
+                            onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
+                            onActivitiesChange = { newActivities ->
+                                activities = newActivities
+                                checkStates = List(activities.size) { rowIndex ->
+                                    checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
+                                }
+                            },
+                            onVisibleSetsCountChange = { newVisibleSetsCount ->
+                                visibleSetsCount = newVisibleSetsCount
+                            },
+                            isExpanded = isExpanded
+                        )
+                    }
                 }
-            )
+            }
         }
     }
 }
 
 @Composable
-fun ProgressCircle(progress: Float) {
+fun ProgressCircle(progress: Float, size: Dp) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = tween(durationMillis = 1000, easing = FastOutLinearInEasing),
@@ -459,20 +501,26 @@ fun ProgressCircle(progress: Float) {
         label = "phaseAnimation"
     )
 
+    val density = LocalDensity.current
+
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(100.dp)) {
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = (size.minDimension - 8.dp.toPx()) / 2f
-            val strokeWidth = 8.dp.toPx()
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val canvasWidth = size.toPx()
+            val canvasHeight = size.toPx()
+            val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
+            val radius =
+                (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 8.dp.toPx() }) / 2f
+            val strokeWidth = with(density) { 8.dp.toPx() }
+
             val sweepAngle = animatedProgress * 360f
 
             // Draw background circle
             drawCircle(
                 color = backgroundColor,
-                radius = if (animatedProgress >= 1f) radius + 12f else radius,
+                radius = if (animatedProgress >= 1f) radius + with(density) { 12.dp.toPx() } else radius,
                 center = center,
                 style = Stroke(
                     width = strokeWidth,
@@ -500,8 +548,10 @@ fun ProgressCircle(progress: Float) {
                 startAngle = -90f,
                 sweepAngle = sweepAngle,
                 useCenter = false,
-                topLeft = Offset(4.dp.toPx(), 4.dp.toPx()),
-                size = Size(size.width - 8.dp.toPx(), size.height - 8.dp.toPx()),
+                topLeft = Offset(with(density) { 4.dp.toPx() }, with(density) { 4.dp.toPx() }),
+                size = Size(
+                    canvasWidth - with(density) { 8.dp.toPx() },
+                    canvasHeight - with(density) { 8.dp.toPx() }),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
         }
@@ -509,18 +559,19 @@ fun ProgressCircle(progress: Float) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "${(animatedProgress * 100).toInt()}%",
-                fontSize = 20.sp,
+                fontSize = (size.value / 5).sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
                 text = "Completed",
-                fontSize = 10.sp,
+                fontSize = (size.value / 10).sp,
                 color = Color.White
             )
         }
     }
 }
+
 @Composable
 fun ActivityGrid(
     activities: List<String>,
@@ -528,9 +579,9 @@ fun ActivityGrid(
     checkStates: List<List<Boolean>>,
     onCheckStateChange: (List<List<Boolean>>) -> Unit,
     onActivitiesChange: (List<String>) -> Unit,
-    onVisibleSetsCountChange: (Int) -> Unit
+    onVisibleSetsCountChange: (Int) -> Unit,
+    isExpanded: Boolean
 ) {
-
     var zoomFactor by remember { mutableStateOf(1f) }
     val visibleSets by remember {
         derivedStateOf {
@@ -541,65 +592,64 @@ fun ActivityGrid(
 
     var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
 
-    val lazyListState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-
     val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
 
     var newExerciseName by remember { mutableStateOf("") }
 
     val visibleSetsCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
     onVisibleSetsCountChange(visibleSetsCount)
+    val alpha by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        animationSpec = tween(durationMillis = 500)
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .pointerInput(Unit) {
+                detectTransformGestures { _, _, zoom, _ ->
+                    zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
+                }
+            }
+    ) {
+        HeaderRow(visibleSets, rowHeight)
 
-    Box(modifier = Modifier.pointerInput(Unit) {
-        detectTransformGestures { _, _, zoom, _ ->
-            zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
-            Log.d("zoomFactor", zoomFactor.toString())
-        }
-    }) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            HeaderRow(visibleSets, rowHeight)
-
-            ActivityList(
+        activities.forEachIndexed { index, activity ->
+            ActivityRow(
                 activities = activities,
+                activity = activity,
+                index = index,
                 visibleSets = visibleSets,
                 checkStates = checkStates,
                 labelStates = labelStates,
                 rowHeight = rowHeight,
                 onCheckStateChange = onCheckStateChange,
                 onActivitiesChange = onActivitiesChange,
-                onLabelChange = { newLabelStates -> labelStates = newLabelStates },
-                lazyListState = lazyListState
-            )
-
-            AddNewExerciseRow(
-                newExerciseName = newExerciseName,
-                onNewExerciseNameChange = { newExerciseName = it },
-                onAddExercise = {
-                    if (newExerciseName.isNotBlank()) {
-                        val newActivities = activities + newExerciseName
-                        onActivitiesChange(newActivities)
-                        val newCheckStates = checkStates.toMutableList().apply {
-                            add(List(allSets.size) { false })
-                        }
-                        onCheckStateChange(newCheckStates)
-                        labelStates = labelStates.toMutableList().apply {
-                            add(List(allSets.size) { "40" })
-                        }
-                        newExerciseName = ""
-                        coroutineScope.launch {
-                            lazyListState.animateScrollToItem(activities.size)
-                        }
-                    }
-                }
+                onLabelChange = { newLabelStates -> labelStates = newLabelStates }
             )
         }
+
+        AddNewExerciseRow(
+            newExerciseName = newExerciseName,
+            onNewExerciseNameChange = { newExerciseName = it },
+            onAddExercise = {
+                if (newExerciseName.isNotBlank()) {
+                    val newActivities = activities + newExerciseName
+                    onActivitiesChange(newActivities)
+                    val newCheckStates = checkStates.toMutableList().apply {
+                        add(List(allSets.size) { false })
+                    }
+                    onCheckStateChange(newCheckStates)
+                    labelStates = labelStates.toMutableList().apply {
+                        add(List(allSets.size) { "40" })
+                    }
+                    newExerciseName = ""
+                }
+            }
+        )
     }
 }
+
 
 @Composable
 private fun HeaderRow(visibleSets: List<String>, rowHeight: Dp) {
