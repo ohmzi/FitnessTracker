@@ -148,44 +148,61 @@ fun GoogleMap(hasLocationPermission: Boolean) {
     }
 }
 
-
 @Composable
 fun RunningStats() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text(
-                "Time",
-                color = Color.Red,
-                fontSize = 18.sp,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    "Pace", color = Color.Red, fontSize = 18.sp
+                    "Time",
+                    color = Color.Red,
+                    fontSize = 18.sp,
                 )
                 Text(
-                    "(mins/km)", color = Color.Red, fontSize = 14.sp
+                    "00:00",
+                    color = Color.Red,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "Pace",
+                        color = Color.Red,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        " (mins/km)",
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
+                }
+                Text(
+                    "00:00",
+                    color = Color.Red,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        Row(
-            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            Text(
-                "00:00", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                "00:00", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold
-            )
-        }
         Text(
             "Distance (Km)",
             color = Color.Red,
