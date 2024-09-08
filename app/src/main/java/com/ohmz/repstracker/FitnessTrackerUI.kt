@@ -2,6 +2,7 @@
 
 package com.ohmz.repstracker
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -14,14 +15,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -57,8 +58,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -84,7 +83,6 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -101,6 +99,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnimatedCheckCircle(
     isChecked: Boolean,
@@ -304,7 +304,7 @@ fun TopBar() {
 }
 
 @Composable
-fun WorkoutTypeSection(onPowerClick: () -> Unit) {
+fun WorkoutTypeSection(onPowerClick: () -> Unit, onCardioClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -320,9 +320,10 @@ fun WorkoutTypeSection(onPowerClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                WorkoutTypeButton("Cardio", isSelected = false)
+                WorkoutTypeButton("Cardio", isSelected = false, onClick = onCardioClick)
                 WorkoutTypeButton("Power", isSelected = true, onClick = onPowerClick)
             }
         }
@@ -353,7 +354,8 @@ fun FitnessTrackerUI() {
     val allSets = remember { listOf("Set 1", "Set 2", "Set 3", "Set 4", "Set 5", "Set 6") }
     var checkStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { false } }) }
     var visibleSetsCount by remember { mutableStateOf(allSets.size) }
-    var isExpanded by remember { mutableStateOf(false) }
+    var isPowerExpanded by remember { mutableStateOf(false) }
+    var isCardioExpanded by remember { mutableStateOf(false) }
 
     val overallProgress by remember(checkStates, visibleSetsCount) {
         derivedStateOf {
@@ -366,24 +368,20 @@ fun FitnessTrackerUI() {
     val density = LocalDensity.current
     val expandedOffset = (-16).dp
 
-    val animatedOffset by animateFloatAsState(targetValue = if (isExpanded) with(density) { expandedOffset.toPx() } else 0f,
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isPowerExpanded || isCardioExpanded) with(density) { expandedOffset.toPx() } else 0f,
         animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-        label = "")
+        label = ""
+    )
 
     val circleSize by animateFloatAsState(
-        targetValue = if (isExpanded) 100f else 300f,
+        targetValue = if (isPowerExpanded || isCardioExpanded) 100f else 300f,
         animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
         label = ""
     )
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
-
-    val scrollButtonsAlpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-        label = ""
-    )
 
     Box(
         modifier = Modifier
@@ -400,14 +398,13 @@ fun FitnessTrackerUI() {
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if (isExpanded) {
+                    if (isPowerExpanded) {
                         Modifier.verticalScroll(scrollState)
                     } else {
                         Modifier
                     }
                 )
         ) {
-
             Spacer(modifier = Modifier.height(30.dp))
             TopBar()
 
@@ -418,47 +415,78 @@ fun FitnessTrackerUI() {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Box(
-                        modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
                         ProgressCircle(
-                            progress = overallProgress, size = circleSize.dp
+                            progress = overallProgress,
+                            size = circleSize.dp
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    WorkoutTypeSection(onPowerClick = { isExpanded = !isExpanded })
+                    WorkoutTypeSection(
+                        onPowerClick = {
+                            isPowerExpanded = !isPowerExpanded
+                            isCardioExpanded = false
+                        },
+                        onCardioClick = {
+                            isCardioExpanded = !isCardioExpanded
+                            isPowerExpanded = false
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    ActivityGrid(
-                        activities = activities,
-                        allSets = allSets,
-                        checkStates = checkStates,
-                        onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
-                        onActivitiesChange = { newActivities ->
-                            activities = newActivities
-                            checkStates = List(activities.size) { rowIndex ->
-                                checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
-                            }
-                        },
-                        onVisibleSetsCountChange = { newVisibleSetsCount ->
-                            visibleSetsCount = newVisibleSetsCount
-                        }, isExpanded = isExpanded
-                    )
+                    AnimatedVisibility(
+                        visible = isPowerExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        PowerTracker(
+                            activities = activities,
+                            allSets = allSets,
+                            checkStates = checkStates,
+                            onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
+                            onActivitiesChange = { newActivities ->
+                                activities = newActivities
+                                checkStates = List(activities.size) { rowIndex ->
+                                    checkStates.getOrNull(rowIndex) ?: List(allSets.size) { false }
+                                }
+                            },
+                            onVisibleSetsCountChange = { newVisibleSetsCount ->
+                                visibleSetsCount = newVisibleSetsCount
+                            },
+                            isExpanded = isPowerExpanded
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = isCardioExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        CardioTracker()
+                    }
                 }
             }
         }
 
-        ScrollButtons(onScrollUp = {
-            coroutineScope.launch {
-                scrollState.animateScrollTo(0)
-            }
-        }, onScrollDown = {
-            coroutineScope.launch {
-                scrollState.animateScrollTo(scrollState.maxValue)
-            }
-        }, alpha = scrollButtonsAlpha
-        )
+        if (isPowerExpanded) {
+            ScrollButtons(
+                onScrollUp = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(0)
+                    }
+                },
+                onScrollDown = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(scrollState.maxValue)
+                    }
+                },
+                alpha = 1f
+            )
+        }
     }
 }
 
@@ -534,80 +562,7 @@ fun AnimatedScrollButton(
     }
 }
 
-@Composable
-fun ActivityGrid(
-    activities: List<String>,
-    allSets: List<String>,
-    checkStates: List<List<Boolean>>,
-    onCheckStateChange: (List<List<Boolean>>) -> Unit,
-    onActivitiesChange: (List<String>) -> Unit,
-    onVisibleSetsCountChange: (Int) -> Unit, isExpanded: Boolean
-) {
-    var zoomFactor by remember { mutableStateOf(1f) }
-    val visibleSets by remember {
-        derivedStateOf {
-            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-            allSets.take(visibleCount)
-        }
-    }
 
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
-
-    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
-
-    var newExerciseName by remember { mutableStateOf("") }
-
-    val visibleSetsCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-    onVisibleSetsCountChange(visibleSetsCount)
-    val alpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 500),
-        label = ""
-    )
-
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .alpha(alpha)
-        .pointerInput(Unit) {
-            detectTransformGestures { _, _, zoom, _ ->
-                zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
-            }
-        }) {
-        HeaderRow(visibleSets, rowHeight)
-
-        activities.forEachIndexed { index, activity ->
-            ActivityRow(activities = activities,
-                activity = activity,
-                index = index,
-                visibleSets = visibleSets,
-                checkStates = checkStates,
-                labelStates = labelStates,
-                rowHeight = rowHeight,
-                onCheckStateChange = onCheckStateChange,
-                onActivitiesChange = onActivitiesChange,
-                onLabelChange = { newLabelStates -> labelStates = newLabelStates })
-        }
-
-        AddNewExerciseRow(newExerciseName = newExerciseName,
-            onNewExerciseNameChange = { newExerciseName = it },
-            onAddExercise = {
-                if (newExerciseName.isNotBlank()) {
-                    val newActivities = activities + newExerciseName
-                    onActivitiesChange(newActivities)
-                    val newCheckStates = checkStates.toMutableList().apply {
-                        add(List(allSets.size) { false })
-                    }
-                    onCheckStateChange(newCheckStates)
-                    labelStates = labelStates.toMutableList().apply {
-                        add(List(allSets.size) { "40" })
-                    }
-                    newExerciseName = ""
-                }
-            })
-        Spacer(modifier = Modifier.height(50.dp))
-
-    }
-}
 
 @Composable
 fun ProgressCircle(progress: Float, size: Dp) {
@@ -694,166 +649,3 @@ fun ProgressCircle(progress: Float, size: Dp) {
     }
 }
 
-@Composable
-private fun HeaderRow(visibleSets: List<String>, rowHeight: Dp) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 30.dp)
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .height(rowHeight / 2),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text("Type", color = Color.White)
-        }
-        visibleSets.forEach { day ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(rowHeight / 2), contentAlignment = Alignment.Center
-            ) {
-                Text(day, color = Color.White, textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActivityRow(
-    activities: List<String>,
-    activity: String,
-    index: Int,
-    visibleSets: List<String>,
-    checkStates: List<List<Boolean>>,
-    labelStates: List<List<String>>,
-    rowHeight: Dp,
-    onCheckStateChange: (List<List<Boolean>>) -> Unit,
-    onActivitiesChange: (List<String>) -> Unit,
-    onLabelChange: (List<List<String>>) -> Unit
-) {
-    var offsetX by remember { mutableStateOf(0f) }
-    val dismissThreshold = -200f
-
-    val animatedOffset by animateFloatAsState(
-        targetValue = offsetX, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
-        ), label = ""
-    )
-
-    val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
-    val totalCount = visibleSets.size
-    val progress = remember(checkedCount, totalCount) {
-        if (totalCount > 0) checkedCount.toFloat() / totalCount else 0f
-    }
-
-    Box(
-        Modifier
-            .padding(vertical = 4.dp)
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }) {
-        Row(Modifier
-            .fillMaxWidth()
-            .draggable(orientation = Orientation.Horizontal,
-                state = rememberDraggableState { delta ->
-                    offsetX += delta
-                    offsetX = offsetX.coerceAtMost(0f)
-                },
-                onDragStopped = {
-                    if (offsetX < dismissThreshold) {
-                        // Remove the activity
-                        onActivitiesChange(activities.filterIndexed { i, _ -> i != index })
-                        onCheckStateChange(checkStates.filterIndexed { i, _ -> i != index })
-                        onLabelChange(labelStates.filterIndexed { i, _ -> i != index })
-                    } else {
-                        offsetX = 0f
-                    }
-                })
-        ) {
-            LabelProgressIndicator(
-                label = activity,
-                progress = progress,
-                modifier = Modifier
-                    .weight(1.5f)
-                    .height(rowHeight)
-                    .padding(start = 16.dp, end = 8.dp)
-            )
-            visibleSets.forEachIndexed { colIndex, _ ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(rowHeight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedCheckCircle(isChecked = checkStates.getOrNull(index)
-                        ?.getOrNull(colIndex) ?: false,
-                        onCheckedChange = { newState ->
-                            val newCheckStates = checkStates.mapIndexed { rowIdx, row ->
-                                if (rowIdx == index) {
-                                    row.mapIndexed { colIdx, col ->
-                                        if (colIdx == colIndex) newState else col
-                                    }
-                                } else row
-                            }
-                            onCheckStateChange(newCheckStates)
-                        },
-                        size = (rowHeight.value * 0.6).dp,
-                        label = labelStates.getOrNull(index)?.getOrNull(colIndex) ?: "50",
-                        onLabelChange = { newLabel ->
-                            val newLabelStates = labelStates.mapIndexed { rowIdx, row ->
-                                if (rowIdx == index) {
-                                    val baseValue = newLabel.toIntOrNull() ?: 40
-                                    row.mapIndexed { colIdx, currentValue ->
-                                        when {
-                                            colIdx < colIndex -> currentValue
-                                            colIdx == colIndex -> newLabel
-                                            else -> (baseValue + (colIdx - colIndex) * 10).toString()
-                                        }
-                                    }
-                                } else row
-                            }
-                            onLabelChange(newLabelStates)
-                        })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddNewExerciseRow(
-    newExerciseName: String, onNewExerciseNameChange: (String) -> Unit, onAddExercise: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = newExerciseName,
-            onValueChange = onNewExerciseNameChange,
-            label = { Text("New Exercise", color = Color.White) },
-            colors = TextFieldDefaults.colors(
-                unfocusedTextColor = Color.White,
-                focusedTextColor = Color.White,
-                cursorColor = Color.White,
-                focusedIndicatorColor = Color.White,
-                unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                unfocusedContainerColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp)
-        )
-        Button(
-            onClick = onAddExercise,
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-        ) {
-            Text("Add", color = Color.Black)
-        }
-    }
-}
