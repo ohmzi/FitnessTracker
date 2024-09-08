@@ -83,7 +83,7 @@ fun CardioTracker() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(90.dp),
+                .padding(50.dp),
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
