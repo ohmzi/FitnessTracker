@@ -10,22 +10,22 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.RepsTracker"
+        android:theme="@style/Theme.FitnessTracker"
         tools:targetApi="31">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyC6wy5B7QDApHH6PV9XJfpOSXFpp9SqSiQ" />
         <activity
-            android:name=".MainActivity"
+            android:name="com.ohmz.fitnessTracker.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.RepsTracker">
+            android:theme="@style/Theme.FitnessTracker">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC6wy5B7QDApHH6PV9XJfpOSXFpp9SqSiQ" />
+
     </application>
 
 </manifest>

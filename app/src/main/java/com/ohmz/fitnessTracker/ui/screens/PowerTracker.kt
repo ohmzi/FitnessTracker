@@ -1,4 +1,4 @@
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker.ui.screens
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState

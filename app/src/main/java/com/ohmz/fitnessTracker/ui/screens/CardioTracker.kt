@@ -1,7 +1,8 @@
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,10 +23,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +49,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 
 @Preview
@@ -67,7 +73,8 @@ fun CardioTracker() {
         // Overlay with CardioTracker UI
         Column(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(top = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             RunningStats()
@@ -76,7 +83,7 @@ fun CardioTracker() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(70.dp),
+                .padding(90.dp),
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -88,41 +95,103 @@ fun CardioTracker() {
 
 @Composable
 fun GoogleMap(hasLocationPermission: Boolean) {
+    var isMapLoaded by remember { mutableStateOf(false) }
+    var mapLoadError by remember { mutableStateOf<String?>(null) }
+
     val singapore = LatLng(1.35, 103.87)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(singapore, 10f)
     }
 
-    GoogleMap(
-        modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState,
-        properties = MapProperties(isMyLocationEnabled = hasLocationPermission)
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        GoogleMap(modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                isMyLocationEnabled = hasLocationPermission, mapType = MapType.NORMAL
+            ),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true, myLocationButtonEnabled = true
+            ),
+            onMapLoaded = {
+                isMapLoaded = true
+                Log.d("GoogleMap", "Map loaded successfully")
+            }) {
+            // You can add markers or other map content here
+        }
+
+        if (!isMapLoaded) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+
+        mapLoadError?.let { error ->
+            Text(
+                text = "Error loading map: $error", modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (!hasLocationPermission) {
+            Log.w("GoogleMap", "Location permission not granted")
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!isMapLoaded) {
+                mapLoadError = "Map failed to load"
+                Log.e("GoogleMap", "Map failed to load")
+            }
+        }
+    }
 }
+
 
 @Composable
 fun RunningStats() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            "Time",
-            color = Color.Red,
-            fontSize = 18.sp
-        )
-        Text(
-            "00:00",
-            color = Color.Red,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text(
+                "Time",
+                color = Color.Red,
+                fontSize = 18.sp,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Pace", color = Color.Red, fontSize = 18.sp
+                )
+                Text(
+                    "(mins/km)", color = Color.Red, fontSize = 14.sp
+                )
+            }
+        }
+
+        Row(
+            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text(
+                "00:00", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                "00:00", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold
+            )
+        }
         Text(
             "Distance (Km)",
             color = Color.Red,
             fontSize = 18.sp,
             modifier = Modifier.padding(top = 10.dp)
         )
-
     }
 }
 
@@ -218,9 +287,7 @@ fun PlayButton() {
         modifier = Modifier
             .size(140.dp) // Increased size to accommodate larger icon
             .graphicsLayer(
-                scaleX = scale,
-                scaleY = scale,
-                alpha = buttonAlpha
+                scaleX = scale, scaleY = scale, alpha = buttonAlpha
             )
             .background(backgroundColor, CircleShape),
         contentAlignment = Alignment.Center

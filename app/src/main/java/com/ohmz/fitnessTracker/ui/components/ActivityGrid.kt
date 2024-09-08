@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalFoundationApi::class)
 
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 

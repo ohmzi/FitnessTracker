@@ -1,4 +1,4 @@
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode

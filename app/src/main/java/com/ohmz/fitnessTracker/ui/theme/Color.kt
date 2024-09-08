@@ -1,4 +1,4 @@
-package com.ohmz.repstracker.ui.theme
+package com.ohmz.fitnessTracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,14 +8,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.ohmz.repstracker.ui.theme.RepsTrackerTheme
+import com.ohmz.fitnessTracker.ui.screens.FitnessTrackerUI
+import com.ohmz.fitnessTracker.ui.theme.FitnessTrackerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            RepsTrackerTheme {
+            FitnessTrackerTheme {
                 FitnessTrackerUI()
             }
         }
@@ -33,7 +34,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    RepsTrackerTheme {
+    FitnessTrackerTheme {
         FitnessTrackerUI()
     }
 }

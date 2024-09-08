@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalFoundationApi::class)
 
-package com.ohmz.repstracker
+package com.ohmz.fitnessTracker.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -540,7 +540,12 @@ fun FitnessTrackerUI() {
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
-                        CardioTracker()
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) { CardioTracker() }
                     }
                 }
             }
@@ -635,7 +640,6 @@ fun AnimatedScrollButton(
         }
     }
 }
-
 
 
 @Composable
