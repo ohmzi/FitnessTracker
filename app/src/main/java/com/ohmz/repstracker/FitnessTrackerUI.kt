@@ -304,7 +304,12 @@ fun TopBar() {
 }
 
 @Composable
-fun WorkoutTypeSection(onPowerClick: () -> Unit, onCardioClick: () -> Unit) {
+fun WorkoutTypeSection(
+    isPowerSelected: Boolean,
+    isCardioSelected: Boolean,
+    onPowerClick: () -> Unit,
+    onCardioClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -323,21 +328,88 @@ fun WorkoutTypeSection(onPowerClick: () -> Unit, onCardioClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                WorkoutTypeButton("Cardio", isSelected = false, onClick = onCardioClick)
-                WorkoutTypeButton("Power", isSelected = true, onClick = onPowerClick)
+                WorkoutTypeButton(
+                    text = "Cardio",
+                    isSelected = isCardioSelected,
+                    onClick = onCardioClick
+                )
+                WorkoutTypeButton(
+                    text = "Power",
+                    isSelected = isPowerSelected,
+                    onClick = onPowerClick
+                )
             }
         }
     }
 }
 
 @Composable
-fun WorkoutTypeButton(text: String, isSelected: Boolean, onClick: () -> Unit = {}) {
+fun WorkoutTypeButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit = {}
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.1f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0.9f,
+        animationSpec = tween(durationMillis = 100),
+        label = "alpha"
+    )
+
+    val backgroundColor = when {
+        isPressed -> Color.Red // Dark Red when pressed
+        isSelected -> Color(0xFFFF6666) // Light Red when selected
+        else -> Color.LightGray // Default Gray
+    }
+
+    val textColor = when {
+        isPressed -> Color.White
+        isSelected -> Color.White
+        else -> Color.Black
+    }
+
+    val elevation = when {
+        isPressed -> ButtonDefaults.buttonElevation(
+            pressedElevation = 8.dp,
+            defaultElevation = 2.dp,
+            focusedElevation = 4.dp
+        )
+
+        else -> ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 8.dp,
+            focusedElevation = 4.dp
+        )
+    }
+
     Button(
-        onClick = onClick, colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color.Red else Color.LightGray
-        ), shape = RoundedCornerShape(50), modifier = Modifier.width(100.dp)
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor.copy(alpha = buttonAlpha),
+            contentColor = textColor
+        ),
+        shape = RoundedCornerShape(50),
+        modifier = Modifier
+            .width(100.dp)
+            .graphicsLayer(
+                scaleX = scale,
+                scaleY = scale
+            ),
+        interactionSource = interactionSource,
+        elevation = elevation
     ) {
-        Text(text, color = if (isSelected) Color.White else Color.Black)
+        Text(text)
     }
 }
 
@@ -426,6 +498,8 @@ fun FitnessTrackerUI() {
 
                     Spacer(modifier = Modifier.height(16.dp))
                     WorkoutTypeSection(
+                        isPowerSelected = isPowerExpanded,
+                        isCardioSelected = isCardioExpanded,
                         onPowerClick = {
                             isPowerExpanded = !isPowerExpanded
                             isCardioExpanded = false
