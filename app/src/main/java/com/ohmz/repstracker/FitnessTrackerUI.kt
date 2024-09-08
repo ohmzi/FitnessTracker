@@ -24,6 +24,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,10 +37,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -49,12 +46,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -64,6 +64,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +82,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -95,9 +98,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnimatedCheckCircle(
     isChecked: Boolean,
@@ -107,8 +110,7 @@ fun AnimatedCheckCircle(
     onLabelChange: (String) -> Unit
 ) {
     val backgroundColor by animateColorAsState(
-        if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F),
-        label = "backgroundColor"
+        if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F), label = "backgroundColor"
     )
     val cornerRadius = size / 4
 
@@ -122,59 +124,47 @@ fun AnimatedCheckCircle(
 
     val squareAnimation = rememberInfiniteTransition(label = "squareAnimation")
     val squareAlpha by squareAnimation.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "squareAlpha"
+        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
+            animation = tween(1000), repeatMode = RepeatMode.Reverse
+        ), label = "squareAlpha"
     )
 
-    Box(
-        modifier = Modifier
-            .size(size)
-            .drawBehind {
-                if (isChecked) {
-                    val animatedSize = size.toPx() + 10.dp.toPx() * squareAlpha
-                    val offset = (animatedSize - size.toPx()) / 2
+    Box(modifier = Modifier
+        .size(size)
+        .drawBehind {
+            if (isChecked) {
+                val animatedSize = size.toPx() + 10.dp.toPx() * squareAlpha
+                val offset = (animatedSize - size.toPx()) / 2
 
-                    drawRoundRect(
-                        color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
-                        topLeft = Offset(-offset, -offset),
-                        size = Size(animatedSize, animatedSize),
-                        cornerRadius = CornerRadius(cornerRadius.toPx()),
-                        style = Stroke(width = 2.dp.toPx())
-                    )
+                drawRoundRect(
+                    color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
+                    topLeft = Offset(-offset, -offset),
+                    size = Size(animatedSize, animatedSize),
+                    cornerRadius = CornerRadius(cornerRadius.toPx()),
+                    style = Stroke(width = 2.dp.toPx())
+                )
+            }
+        }
+        .background(backgroundColor, RoundedCornerShape(cornerRadius))
+        .indication(interactionSource, indication)
+        .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+            if (!isEditing) {
+                onCheckedChange(!isChecked)
+                if (isChecked) {
+                    isEditing = false
+                    keyboardController?.hide()
                 }
             }
-            .background(backgroundColor, RoundedCornerShape(cornerRadius))
-            .indication(interactionSource, indication)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    if (!isEditing) {
-                        onCheckedChange(!isChecked)
-                        if (isChecked) {
-                            isEditing = false
-                            keyboardController?.hide()
-                        }
-                    }
-                },
-                onLongClick = {
-                    if (!isChecked) {
-                        isEditing = true
-                        editableLabel = ""
-                    }
-                }
-            ),
-        contentAlignment = Alignment.Center
+        }, onLongClick = {
+            if (!isChecked) {
+                isEditing = true
+                editableLabel = ""
+            }
+        }), contentAlignment = Alignment.Center
     ) {
         if (!isChecked) {
             if (isEditing) {
-                BasicTextField(
-                    value = editableLabel,
+                BasicTextField(value = editableLabel,
                     onValueChange = {
                         editableLabel = it
                         onLabelChange(it)
@@ -187,8 +177,7 @@ fun AnimatedCheckCircle(
                     singleLine = true,
                     modifier = Modifier.fillMaxSize(),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = {
                         isEditing = false
@@ -197,13 +186,11 @@ fun AnimatedCheckCircle(
                     cursorBrush = SolidColor(Color.Red),
                     decorationBox = { innerTextField ->
                         Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                            contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()
                         ) {
                             innerTextField()
                         }
-                    }
-                )
+                    })
             } else {
                 Text(
                     text = label,
@@ -225,9 +212,7 @@ fun AnimatedCheckCircle(
 
 @Composable
 fun LabelProgressIndicator(
-    label: String,
-    progress: Float,
-    modifier: Modifier = Modifier
+    label: String, progress: Float, modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
@@ -240,54 +225,46 @@ fun LabelProgressIndicator(
         label = "outlineColorAnimation"
     )
     val phase = rememberInfiniteTransition(label = "phaseAnimation").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phaseValue"
+        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
+        ), label = "phaseValue"
     )
 
-    Box(
-        modifier = modifier
-            .padding(start = 0.dp, top = 14.dp, bottom = 14.dp)
-            .drawBehind {
-                val strokeWidth = 4.dp.toPx()
-                val cornerRadius = 16.dp.toPx()
+    Box(modifier = modifier
+        .padding(start = 0.dp, top = 14.dp, bottom = 14.dp)
+        .drawBehind {
+            val strokeWidth = 4.dp.toPx()
+            val cornerRadius = 16.dp.toPx()
 
-                drawRoundRect(
-                    color = outlineColor,
-                    topLeft = Offset(-strokeWidth / 2, -strokeWidth / 2),
-                    size = Size(size.width + strokeWidth, size.height + strokeWidth),
-                    cornerRadius = CornerRadius(cornerRadius + strokeWidth / 2),
-                    style = Stroke(
-                        width = strokeWidth,
-                        pathEffect = if (progress >= 1f) {
-                            PathEffect.dashPathEffect(
-                                floatArrayOf(20f, 20f),
-                                phase = phase.value * 40f
-                            )
-                        } else null
-                    )
+            drawRoundRect(
+                color = outlineColor,
+                topLeft = Offset(-strokeWidth / 2, -strokeWidth / 2),
+                size = Size(size.width + strokeWidth, size.height + strokeWidth),
+                cornerRadius = CornerRadius(cornerRadius + strokeWidth / 2),
+                style = Stroke(
+                    width = strokeWidth, pathEffect = if (progress >= 1f) {
+                        PathEffect.dashPathEffect(
+                            floatArrayOf(20f, 20f), phase = phase.value * 40f
+                        )
+                    } else null
                 )
-            }
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF37474F))
-            .drawWithContent {
-                val cornerRadius = 16.dp.toPx()
+            )
+        }
+        .clip(RoundedCornerShape(16.dp))
+        .background(Color(0xFF37474F))
+        .drawWithContent {
+            val cornerRadius = 16.dp.toPx()
 
-                drawRoundRect(
-                    color = Color(0xFF4CAF50),
-                    topLeft = Offset.Zero,
-                    size = Size(size.width * animatedProgress, size.height),
-                    cornerRadius = CornerRadius(cornerRadius),
-                    style = Fill
-                )
+            drawRoundRect(
+                color = Color(0xFF4CAF50),
+                topLeft = Offset.Zero,
+                size = Size(size.width * animatedProgress, size.height),
+                cornerRadius = CornerRadius(cornerRadius),
+                style = Fill
+            )
 
-                drawContent()
-            },
-        contentAlignment = Alignment.Center
+            drawContent()
+        }, contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
@@ -321,9 +298,7 @@ fun TopBar() {
             fontWeight = FontWeight.Bold
         )
         Icon(
-            imageVector = Icons.Default.Menu,
-            contentDescription = "Menu",
-            tint = Color.White
+            imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.White
         )
     }
 }
@@ -345,8 +320,7 @@ fun WorkoutTypeSection(onPowerClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 WorkoutTypeButton("Cardio", isSelected = false)
                 WorkoutTypeButton("Power", isSelected = true, onClick = onPowerClick)
@@ -358,17 +332,13 @@ fun WorkoutTypeSection(onPowerClick: () -> Unit) {
 @Composable
 fun WorkoutTypeButton(text: String, isSelected: Boolean, onClick: () -> Unit = {}) {
     Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
+        onClick = onClick, colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) Color.Red else Color.LightGray
-        ),
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.width(100.dp)
+        ), shape = RoundedCornerShape(50), modifier = Modifier.width(100.dp)
     ) {
         Text(text, color = if (isSelected) Color.White else Color.Black)
     }
 }
-
 
 @Preview
 @Composable
@@ -376,11 +346,7 @@ fun FitnessTrackerUI() {
     var activities by remember {
         mutableStateOf(
             listOf(
-                "Shoulder Press",
-                "Curls",
-                "Chest Press",
-                "Lateral raises",
-                "Leg raises"
+                "Shoulder Press", "Curls", "Chest Press", "Lateral raises", "Leg raises"
             )
         )
     }
@@ -398,19 +364,26 @@ fun FitnessTrackerUI() {
     }
 
     val density = LocalDensity.current
-    val expandedOffset = -16.dp
+    val expandedOffset = (-16).dp
 
-    val animatedOffset by animateFloatAsState(
-        targetValue = if (isExpanded) with(density) { expandedOffset.toPx() } else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
-    )
+    val animatedOffset by animateFloatAsState(targetValue = if (isExpanded) with(density) { expandedOffset.toPx() } else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "")
 
     val circleSize by animateFloatAsState(
         targetValue = if (isExpanded) 100f else 300f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = ""
     )
 
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val scrollButtonsAlpha by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = ""
+    )
 
     Box(
         modifier = Modifier
@@ -418,9 +391,7 @@ fun FitnessTrackerUI() {
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFF69B4),
-                        Color(0xFFFF8C00),
-                        Color(0xFF4169E1)
+                        Color(0xFFFF69B4), Color(0xFFFF8C00), Color(0xFF4169E1)
                     )
                 )
             )
@@ -436,31 +407,26 @@ fun FitnessTrackerUI() {
                     }
                 )
         ) {
+
             Spacer(modifier = Modifier.height(30.dp))
             TopBar()
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(0, animatedOffset.roundToInt()) }
-            ) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(0, animatedOffset.roundToInt()) }) {
                 Column {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
                     ) {
                         ProgressCircle(
-                            progress = overallProgress,
-                            size = circleSize.dp
+                            progress = overallProgress, size = circleSize.dp
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    WorkoutTypeSection(
-                        onPowerClick = { isExpanded = !isExpanded }
-                    )
+                    WorkoutTypeSection(onPowerClick = { isExpanded = !isExpanded })
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -477,12 +443,93 @@ fun FitnessTrackerUI() {
                         },
                         onVisibleSetsCountChange = { newVisibleSetsCount ->
                             visibleSetsCount = newVisibleSetsCount
-                        },
-                        isExpanded = isExpanded,
-                        scrollState = scrollState
+                        }, isExpanded = isExpanded
                     )
                 }
             }
+        }
+
+        ScrollButtons(onScrollUp = {
+            coroutineScope.launch {
+                scrollState.animateScrollTo(0)
+            }
+        }, onScrollDown = {
+            coroutineScope.launch {
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
+        }, alpha = scrollButtonsAlpha
+        )
+    }
+}
+
+@Composable
+fun ScrollButtons(onScrollUp: () -> Unit, onScrollDown: () -> Unit, alpha: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(end = 16.dp)
+    ) {
+        // Scroll Up Button
+        AnimatedScrollButton(
+            onClick = onScrollUp,
+            icon = Icons.Filled.KeyboardArrowUp,
+            contentDescription = "Scroll to top",
+            alpha = alpha,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
+
+        // Scroll Down Button
+        AnimatedScrollButton(
+            onClick = onScrollDown,
+            icon = Icons.Filled.KeyboardArrowDown,
+            contentDescription = "Scroll to bottom",
+            alpha = alpha,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(top = 160.dp)
+        )
+    }
+}
+
+@Composable
+fun AnimatedScrollButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String,
+    alpha: Float,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0.8f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
+        ), label = ""
+    )
+
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 100),
+        label = ""
+    )
+
+    Box(
+        modifier = modifier
+            .alpha(alpha * buttonAlpha)
+            .graphicsLayer(
+                scaleX = scale, scaleY = scale
+            )
+    ) {
+        FloatingActionButton(
+            onClick = onClick,
+            containerColor = Color.Red.copy(alpha = buttonAlpha),
+            contentColor = Color.White,
+            interactionSource = interactionSource
+        ) {
+            Icon(
+                imageVector = icon, contentDescription = contentDescription
+            )
         }
     }
 }
@@ -494,14 +541,12 @@ fun ActivityGrid(
     checkStates: List<List<Boolean>>,
     onCheckStateChange: (List<List<Boolean>>) -> Unit,
     onActivitiesChange: (List<String>) -> Unit,
-    onVisibleSetsCountChange: (Int) -> Unit,
-    isExpanded: Boolean,
-    scrollState: ScrollState
+    onVisibleSetsCountChange: (Int) -> Unit, isExpanded: Boolean
 ) {
     var zoomFactor by remember { mutableStateOf(1f) }
     val visibleSets by remember {
         derivedStateOf {
-            val visibleCount = (allSets.size / zoomFactor).coerceIn(3, allSets.size)
+            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
             allSets.take(visibleCount)
         }
     }
@@ -512,31 +557,26 @@ fun ActivityGrid(
 
     var newExerciseName by remember { mutableStateOf("") }
 
-    val visibleSetsCount = (allSets.size / zoomFactor).coerceIn(3, allSets.size)
+    val visibleSetsCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
     onVisibleSetsCountChange(visibleSetsCount)
     val alpha by animateFloatAsState(
         targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 500)
+        animationSpec = tween(durationMillis = 500),
+        label = ""
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .alpha(alpha)
-            .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
-                    if (isExpanded) {
-                        scrollState.scrollTo((scrollState.value - pan.y.toInt()).coerceIn(0, scrollState.maxValue))
-                    }
-                }
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .alpha(alpha)
+        .pointerInput(Unit) {
+            detectTransformGestures { _, _, zoom, _ ->
+                zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
             }
-    ) {
+        }) {
         HeaderRow(visibleSets, rowHeight)
 
         activities.forEachIndexed { index, activity ->
-            ActivityRow(
-                activities = activities,
+            ActivityRow(activities = activities,
                 activity = activity,
                 index = index,
                 visibleSets = visibleSets,
@@ -545,12 +585,10 @@ fun ActivityGrid(
                 rowHeight = rowHeight,
                 onCheckStateChange = onCheckStateChange,
                 onActivitiesChange = onActivitiesChange,
-                onLabelChange = { newLabelStates -> labelStates = newLabelStates }
-            )
+                onLabelChange = { newLabelStates -> labelStates = newLabelStates })
         }
 
-        AddNewExerciseRow(
-            newExerciseName = newExerciseName,
+        AddNewExerciseRow(newExerciseName = newExerciseName,
             onNewExerciseNameChange = { newExerciseName = it },
             onAddExercise = {
                 if (newExerciseName.isNotBlank()) {
@@ -565,9 +603,9 @@ fun ActivityGrid(
                     }
                     newExerciseName = ""
                 }
-            }
-        )
+            })
         Spacer(modifier = Modifier.height(50.dp))
+
     }
 }
 
@@ -590,20 +628,15 @@ fun ProgressCircle(progress: Float, size: Dp) {
 
     val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
     val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phaseAnimation"
+        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
+        ), label = "phaseAnimation"
     )
 
     val density = LocalDensity.current
 
     Box(
-        modifier = Modifier.size(size),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.size(size), contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.toPx()
@@ -616,27 +649,20 @@ fun ProgressCircle(progress: Float, size: Dp) {
             val sweepAngle = animatedProgress * 360f
 
             // Draw background circle
-            drawCircle(
-                color = backgroundColor,
+            drawCircle(color = backgroundColor,
                 radius = if (animatedProgress >= 1f) radius + with(density) { 12.dp.toPx() } else radius,
                 center = center,
                 style = Stroke(
-                    width = strokeWidth,
-                    pathEffect = if (animatedProgress >= 1f) {
+                    width = strokeWidth, pathEffect = if (animatedProgress >= 1f) {
                         PathEffect.dashPathEffect(
-                            floatArrayOf(20f, 20f),
-                            phase = phase * 40f
+                            floatArrayOf(20f, 20f), phase = phase * 40f
                         )
                     } else null
-                )
-            )
+                ))
 
             if (animatedProgress >= 1f) {
                 drawCircle(
-                    color = backgroundColor,
-                    radius = radius,
-                    center = center,
-                    style = Fill
+                    color = backgroundColor, radius = radius, center = center, style = Fill
                 )
             }
 
@@ -662,14 +688,11 @@ fun ProgressCircle(progress: Float, size: Dp) {
                 color = Color.White
             )
             Text(
-                text = "Completed",
-                fontSize = (size.value / 10).sp,
-                color = Color.White
+                text = "Completed", fontSize = (size.value / 10).sp, color = Color.White
             )
         }
     }
 }
-
 
 @Composable
 private fun HeaderRow(visibleSets: List<String>, rowHeight: Dp) {
@@ -691,45 +714,10 @@ private fun HeaderRow(visibleSets: List<String>, rowHeight: Dp) {
             Box(
                 Modifier
                     .weight(1f)
-                    .height(rowHeight / 2),
-                contentAlignment = Alignment.Center
+                    .height(rowHeight / 2), contentAlignment = Alignment.Center
             ) {
                 Text(day, color = Color.White, textAlign = TextAlign.Center)
             }
-        }
-    }
-}
-
-@Composable
-private fun ActivityList(
-    activities: List<String>,
-    visibleSets: List<String>,
-    checkStates: List<List<Boolean>>,
-    labelStates: List<List<String>>,
-    rowHeight: Dp,
-    onCheckStateChange: (List<List<Boolean>>) -> Unit,
-    onActivitiesChange: (List<String>) -> Unit,
-    onLabelChange: (List<List<String>>) -> Unit,
-    lazyListState: LazyListState
-) {
-    LazyColumn(
-        state = lazyListState,
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        itemsIndexed(items = activities, key = { _, item -> item }) { index, activity ->
-            ActivityRow(
-                activities = activities,
-                activity = activity,
-                index = index,
-                visibleSets = visibleSets,
-                checkStates = checkStates,
-                labelStates = labelStates,
-                rowHeight = rowHeight,
-                onCheckStateChange = onCheckStateChange,
-                onActivitiesChange = onActivitiesChange,
-                onLabelChange = onLabelChange
-            )
         }
     }
 }
@@ -751,11 +739,9 @@ private fun ActivityRow(
     val dismissThreshold = -200f
 
     val animatedOffset by animateFloatAsState(
-        targetValue = offsetX,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
+        targetValue = offsetX, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
+        ), label = ""
     )
 
     val checkedCount = checkStates.getOrNull(index)?.count { it } ?: 0
@@ -767,28 +753,24 @@ private fun ActivityRow(
     Box(
         Modifier
             .padding(vertical = 4.dp)
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = rememberDraggableState { delta ->
-                        offsetX += delta
-                        offsetX = offsetX.coerceAtMost(0f)
-                    },
-                    onDragStopped = {
-                        if (offsetX < dismissThreshold) {
-                            // Remove the activity
-                            onActivitiesChange(activities.filterIndexed { i, _ -> i != index })
-                            onCheckStateChange(checkStates.filterIndexed { i, _ -> i != index })
-                            onLabelChange(labelStates.filterIndexed { i, _ -> i != index })
-                        } else {
-                            offsetX = 0f
-                        }
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }) {
+        Row(Modifier
+            .fillMaxWidth()
+            .draggable(orientation = Orientation.Horizontal,
+                state = rememberDraggableState { delta ->
+                    offsetX += delta
+                    offsetX = offsetX.coerceAtMost(0f)
+                },
+                onDragStopped = {
+                    if (offsetX < dismissThreshold) {
+                        // Remove the activity
+                        onActivitiesChange(activities.filterIndexed { i, _ -> i != index })
+                        onCheckStateChange(checkStates.filterIndexed { i, _ -> i != index })
+                        onLabelChange(labelStates.filterIndexed { i, _ -> i != index })
+                    } else {
+                        offsetX = 0f
                     }
-                )
+                })
         ) {
             LabelProgressIndicator(
                 label = activity,
@@ -805,8 +787,8 @@ private fun ActivityRow(
                         .height(rowHeight),
                     contentAlignment = Alignment.Center
                 ) {
-                    AnimatedCheckCircle(
-                        isChecked = checkStates.getOrNull(index)?.getOrNull(colIndex) ?: false,
+                    AnimatedCheckCircle(isChecked = checkStates.getOrNull(index)
+                        ?.getOrNull(colIndex) ?: false,
                         onCheckedChange = { newState ->
                             val newCheckStates = checkStates.mapIndexed { rowIdx, row ->
                                 if (rowIdx == index) {
@@ -833,8 +815,7 @@ private fun ActivityRow(
                                 } else row
                             }
                             onLabelChange(newLabelStates)
-                        }
-                    )
+                        })
                 }
             }
         }
@@ -843,9 +824,7 @@ private fun ActivityRow(
 
 @Composable
 private fun AddNewExerciseRow(
-    newExerciseName: String,
-    onNewExerciseNameChange: (String) -> Unit,
-    onAddExercise: () -> Unit
+    newExerciseName: String, onNewExerciseNameChange: (String) -> Unit, onAddExercise: () -> Unit
 ) {
     Row(
         modifier = Modifier
