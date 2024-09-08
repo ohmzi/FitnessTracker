@@ -13,7 +13,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -103,16 +106,23 @@ fun RunningStats() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
+            "Time",
+            color = Color.Red,
+            fontSize = 18.sp
+        )
+        Text(
             "00:00",
             color = Color.Red,
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
-            "Time",
+            "Distance (Km)",
             color = Color.Red,
-            fontSize = 18.sp
+            fontSize = 18.sp,
+            modifier = Modifier.padding(top = 10.dp)
         )
+
     }
 }
 
@@ -120,19 +130,63 @@ fun RunningStats() {
 fun Distance() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            "0.0",
-            fontSize = 100.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Red,
-            fontStyle = FontStyle.Italic
-        )
-        Text(
-            "Kilometres",
-            fontSize = 18.sp,
-            color = Color.Red
-        )
+        Row(
+            Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text(
+                "0.0",
+                fontSize = 100.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Red,
+                fontStyle = FontStyle.Italic,
+                lineHeight = 80.sp,
+                modifier = Modifier.offset(y = (-14).dp)  // Reduced line height
+            )
+            Text(
+                "/",
+                fontSize = 100.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Red,
+                fontStyle = FontStyle.Italic,
+                lineHeight = 80.sp,
+                modifier = Modifier.offset(y = (-14).dp)  // Reduced line height
+            )
+            Text(
+                "5.0",
+                fontSize = 100.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Red,
+                fontStyle = FontStyle.Italic,
+                lineHeight = 80.sp,
+                modifier = Modifier.offset(y = (-14).dp), // Reduced line height
+            )
+        }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .offset(y = (-24).dp),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text(
+                "Progress",
+                fontSize = 18.sp,
+                color = Color.Red,
+            )
+            Text(
+                "",
+                fontSize = 18.sp,
+                color = Color.Red,
+            )
+            Text(
+                "Target",
+                fontSize = 18.sp,
+                color = Color.Red,
+            )
+        }
     }
 }
 
