@@ -2,9 +2,9 @@
 
 package com.ohmz.fitnessTracker.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,6 +85,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmz.fitnesstracker.R
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -307,13 +309,23 @@ fun FitnessTrackerUI() {
     var isPowerExpanded by remember { mutableStateOf(false) }
     var isCardioExpanded by remember { mutableStateOf(false) }
 
-    val overallProgress by remember(checkStates, visibleSetsCount) {
+    // New state for distance and target distance
+    var distance by remember { mutableStateOf(0f) }
+    var targetDistance by remember { mutableStateOf(5f) }
+
+    val workoutProgress by remember(checkStates, visibleSetsCount) {
         derivedStateOf {
             val totalChecks = checkStates.sumOf { row -> row.take(visibleSetsCount).count { it } }
             val totalPossibleChecks = activities.size * visibleSetsCount
             if (totalPossibleChecks > 0) totalChecks.toFloat() / totalPossibleChecks else 0f
         }
     }
+
+    val distanceProgress by remember((distance / 1000), targetDistance) {
+        derivedStateOf { ((distance / 1000) / targetDistance).coerceIn(0f, 1f) }
+    }
+    Log.d("distanceProgress", "distance $distance")
+    Log.d("distanceProgress", "targetDistance $targetDistance")
 
     val density = LocalDensity.current
     val expandedOffset = (-16).dp
@@ -369,7 +381,8 @@ fun FitnessTrackerUI() {
                         contentAlignment = Alignment.Center
                     ) {
                         ProgressCircle(
-                            progress = overallProgress,
+                            workoutProgress = workoutProgress,
+                            distanceProgress = distanceProgress,
                             size = circleSize.dp
                         )
                     }
@@ -423,7 +436,14 @@ fun FitnessTrackerUI() {
                                 .fillMaxWidth()
                                 .padding(start = 16.dp, end = 16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) { CardioTracker() }
+                        ) {
+                            CardioTracker(
+                                distances = distance,
+                                onDistanceChange = { distance = it },
+                                targetDistance = targetDistance,
+                                onTargetDistanceChange = { targetDistance = it }
+                            )
+                        }
                     }
                 }
             }
@@ -519,89 +539,99 @@ fun AnimatedScrollButton(
     }
 }
 
-
 @Composable
-fun ProgressCircle(progress: Float, size: Dp) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutLinearInEasing),
-        label = "progressAnimation"
+fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
+    val animatedWorkoutProgress by animateFloatAsState(
+        targetValue = workoutProgress,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "workoutProgressAnimation"
     )
 
-    val color by animateColorAsState(
-        targetValue = if (animatedProgress >= 1f) Color(0xFF4CAF50) else Color.Red,
-        label = "colorAnimation"
-    )
-    val backgroundColor by animateColorAsState(
-        targetValue = if (animatedProgress >= 1f) Color(0xFF4CAF50) else Color(0xFFFFA6A6),
-        label = "backgroundColorAnimation"
+    val animatedDistanceProgress by animateFloatAsState(
+        targetValue = distanceProgress,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "distanceProgressAnimation"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "infiniteTransition")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart
-        ), label = "phaseAnimation"
-    )
+    val workoutColor = Color(0xFF11FF00)  // Brown color for workout (outer ring)
+    val distanceColor = Color(0xFF007BFF) // Bronze color for distance/cardio (inner ring)
 
     val density = LocalDensity.current
 
     Box(
-        modifier = Modifier.size(size), contentAlignment = Alignment.Center
+        modifier = Modifier.size(size),
+        contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.toPx()
             val canvasHeight = size.toPx()
             val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
-            val radius =
-                (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 8.dp.toPx() }) / 2f
-            val strokeWidth = with(density) { 8.dp.toPx() }
+            val outerRadius =
+                (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 16.dp.toPx() }) / 2f
+            val innerRadius = outerRadius - with(density) { 60.dp.toPx() }
+            val strokeWidth = with(density) { 50.dp.toPx() }
 
-            val sweepAngle = animatedProgress * 360f
-
-            // Draw background circle
-            drawCircle(color = backgroundColor,
-                radius = if (animatedProgress >= 1f) radius + with(density) { 12.dp.toPx() } else radius,
+            // Draw outline circles
+            drawCircle(
+                color = workoutColor.copy(alpha = 0.3f),
+                radius = outerRadius,
                 center = center,
-                style = Stroke(
-                    width = strokeWidth, pathEffect = if (animatedProgress >= 1f) {
-                        PathEffect.dashPathEffect(
-                            floatArrayOf(20f, 20f), phase = phase * 40f
-                        )
-                    } else null
-                ))
+                style = Stroke(width = strokeWidth)
+            )
+            drawCircle(
+                color = distanceColor.copy(alpha = 0.3f),
+                radius = innerRadius,
+                center = center,
+                style = Stroke(width = strokeWidth)
+            )
 
-            if (animatedProgress >= 1f) {
-                drawCircle(
-                    color = backgroundColor, radius = radius, center = center, style = Fill
-                )
-            }
-
-            // Draw progress arc
+            // Draw workout progress arc
             drawArc(
-                color = color,
+                color = workoutColor,
                 startAngle = -90f,
-                sweepAngle = sweepAngle,
+                sweepAngle = animatedWorkoutProgress * 360f,
                 useCenter = false,
-                topLeft = Offset(with(density) { 4.dp.toPx() }, with(density) { 4.dp.toPx() }),
-                size = Size(
-                    canvasWidth - with(density) { 8.dp.toPx() },
-                    canvasHeight - with(density) { 8.dp.toPx() }),
+                topLeft = Offset(center.x - outerRadius, center.y - outerRadius),
+                size = Size(outerRadius * 2, outerRadius * 2),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+
+            // Draw distance progress arc
+            drawArc(
+                color = distanceColor,
+                startAngle = -90f,
+                sweepAngle = animatedDistanceProgress * 360f,
+                useCenter = false,
+                topLeft = Offset(center.x - innerRadius, center.y - innerRadius),
+                size = Size(innerRadius * 2, innerRadius * 2),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "${(animatedProgress * 100).toInt()}%",
-                fontSize = (size.value / 5).sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
+        // Draw icons
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // Workout icon (overlapping outer ring)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_workout),
+                contentDescription = "Workout Icon",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(size * 0.10f)  // Reduced size
+                    .offset(y = -(size * 0.50f))  // Adjusted position
             )
-            Text(
-                text = "Completed", fontSize = (size.value / 10).sp, color = Color.White
+
+            // Running icon (overlapping inner ring)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_running),
+                contentDescription = "Running Icon",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(size * 0.15f)  // Reduced size
+                    .offset(y = (size * 0.325f))  // Adjusted position
             )
         }
     }
 }
-

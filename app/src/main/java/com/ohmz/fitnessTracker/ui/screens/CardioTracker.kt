@@ -62,7 +62,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -85,13 +84,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-@Preview
 @Composable
-fun CardioTracker() {
+fun CardioTracker(
+    distances: Float,
+    onDistanceChange: (Float) -> Unit,
+    targetDistance: Float,
+    onTargetDistanceChange: (Float) -> Unit
+) {
+    var distance = distances
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(false) }
     var isTracking by remember { mutableStateOf(false) }
-    var distance by remember { mutableFloatStateOf(0f) } // in meters
     var time by remember { mutableLongStateOf(0L) } // in milliseconds
     var pace by remember { mutableFloatStateOf(0f) } // in minutes per kilometer
 
@@ -104,7 +107,7 @@ fun CardioTracker() {
                 val location = locationResult.lastLocation ?: return
                 if (lastLocation != null) {
                     val newDistance = lastLocation!!.distanceTo(location)
-                    distance += newDistance
+                    onDistanceChange(distance + newDistance)
                 }
                 lastLocation = location
             }
@@ -177,8 +180,7 @@ fun CardioTracker() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.White.copy(alpha = 0.6f)
                 )
@@ -187,7 +189,11 @@ fun CardioTracker() {
                     time = formatTime(time),
                     pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
                 )
-                Distance(distance = distance / 1000f) // Convert to km
+                Distance(
+                    distance = distance / 1000f, // Convert to km
+                    targetDistance = targetDistance,
+                    onTargetDistanceChange = onTargetDistanceChange
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
             PlayButton(
@@ -375,9 +381,12 @@ fun AnimatedButton(
 }
 
 @Composable
-fun Distance(distance: Float) {
+fun Distance(
+    distance: Float,
+    targetDistance: Float,
+    onTargetDistanceChange: (Float) -> Unit
+) {
     var showPicker by remember { mutableStateOf(false) }
-    var targetDistance by remember { mutableStateOf(5.0f) }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -445,7 +454,7 @@ fun Distance(distance: Float) {
     if (showPicker) {
         DistancePickerPopup(
             currentValue = targetDistance,
-            onValueChange = { newValue -> targetDistance = newValue },
+            onValueChange = { newValue -> onTargetDistanceChange(newValue) },
             onDismiss = { showPicker = false }
         )
     }
