@@ -57,7 +57,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -96,10 +95,6 @@ fun CardioTracker() {
                 if (lastLocation != null) {
                     val newDistance = lastLocation!!.distanceTo(location)
                     distance += newDistance
-                    if (distance % 100 < newDistance) {
-                        // Update UI for every 100m
-                        // This is handled automatically by the state
-                    }
                 }
                 lastLocation = location
             }
@@ -114,29 +109,13 @@ fun CardioTracker() {
                 priority = LocationRequest.PRIORITY_HIGH_ACCURACY
             }
             if (hasLocationPermission) {
-                if (ActivityCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return@LaunchedEffect
-                }
                 fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
             }
 
             // Start a coroutine for the timer
             launch {
-                val startTime = SystemClock.elapsedRealtime()
+                val startTime =
+                    SystemClock.elapsedRealtime() - time // Resume from previous time if any
                 while (isTracking) {
                     delay(1000) // Update every second
                     time = SystemClock.elapsedRealtime() - startTime
@@ -150,6 +129,7 @@ fun CardioTracker() {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         }
     }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LocationPermissionRequest { granted ->
             hasLocationPermission = granted
@@ -171,17 +151,25 @@ fun CardioTracker() {
         ) {
             RunningStatss(
                 time = formatTime(time),
-                //
                 pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
             )
-            Distance(distance = distance / 1000f) // Convert to km)
+            Distance(distance = distance / 1000f) // Convert to km
             Spacer(modifier = Modifier.weight(1f))
             PlayButton(
-                isTracking = isTracking
+                isTracking = isTracking,
+                onToggle = { newIsTracking ->
+                    isTracking = newIsTracking
+                    if (!newIsTracking) {
+                        // Reset values when stopping
+                        distance = 0f
+                        time = 0L
+                        pace = 0f
+                        lastLocation = null
+                    }
+                }
             )
         }
     }
-
 }
 
 @Composable
@@ -248,7 +236,6 @@ fun RunningStatss(time: String, pace: String) {
     }
 }
 
-
 @Composable
 fun Distance(distance: Float) {
     Column(
@@ -260,8 +247,9 @@ fun Distance(distance: Float) {
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
+            val distances = Math.round(distance * 10) / 10.0
             Text(
-                text = distance.toString(),
+                text = distances.toString(),
                 fontSize = 100.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Red,
@@ -314,7 +302,7 @@ fun Distance(distance: Float) {
 }
 
 @Composable
-fun PlayButton(isTracking: Boolean) {
+fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -335,11 +323,11 @@ fun PlayButton(isTracking: Boolean) {
     )
 
     val backgroundColor =
-        if (isPressed) Color.Red else Color(0xFFFF6666) // Light red when not pressed
+        if (isTracking) Color.Red else Color(0xFF4CAF50) // Green when not tracking
 
     Box(
         modifier = Modifier
-            .size(140.dp) // Increased size to accommodate larger icon
+            .size(140.dp)
             .graphicsLayer(
                 scaleX = scale, scaleY = scale, alpha = buttonAlpha
             )
@@ -348,16 +336,21 @@ fun PlayButton(isTracking: Boolean) {
     ) {
         IconButton(
             onClick = {
-                Toast.makeText(context, "Start the run now", Toast.LENGTH_SHORT).show()
+                onToggle(!isTracking)
+                Toast.makeText(
+                    context,
+                    if (!isTracking) "Starting the run" else "Stopping the run",
+                    Toast.LENGTH_SHORT
+                ).show()
             },
             interactionSource = interactionSource,
-            modifier = Modifier.size(140.dp) // Match the size of the Box
+            modifier = Modifier.size(140.dp)
         ) {
             Icon(
                 imageVector = if (isTracking) Icons.Default.Menu else Icons.Default.PlayArrow,
-                contentDescription = if (isTracking) "Pause" else "Play",
+                contentDescription = if (isTracking) "Stop" else "Start",
                 tint = Color.White,
-                modifier = Modifier.size(100.dp) // Increased icon size
+                modifier = Modifier.size(100.dp)
             )
         }
     }
@@ -370,7 +363,6 @@ fun formatTime(timeInMillis: Long): String {
     val hours = (timeInMillis / (1000 * 60 * 60)) % 24
     return String.format("%02d:%02d:%02d", hours, minutes, seconds)
 }
-
 
 @Composable
 fun GoogleMap(hasLocationPermission: Boolean) {
