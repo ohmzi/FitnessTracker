@@ -10,12 +10,14 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -25,20 +27,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -59,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -111,6 +119,23 @@ fun CardioTracker() {
                 priority = LocationRequest.PRIORITY_HIGH_ACCURACY
             }
             if (hasLocationPermission) {
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return@LaunchedEffect
+                }
                 fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
             }
 
@@ -246,15 +271,120 @@ fun RunningStatss(time: String, pace: String) {
     }
 }
 
+
+@Composable
+fun DistancePickerPopup(
+    currentValue: Float,
+    onValueChange: (Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedValue by remember { mutableStateOf(currentValue) }
+
+    val lightRed = Color(0xFFFFCCCB)
+    val darkRed = Color(0xFFFF6961)
+    val lightBlue = Color(0xFFADD8E6)
+    val darkBlue = Color(0xFF6495ED)
+    val lightGreen = Color(0xFF90EE90)
+    val darkGreen = Color(0xFF32CD32)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Select Target Distance", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedButton(
+                        onClick = { if (selectedValue > 0.5f) selectedValue -= 0.5f },
+                        lightColor = lightRed,
+                        darkColor = darkRed,
+                        content = { Text("-", color = Color.Black) }
+                    )
+                    Text(
+                        text = String.format("%.1f km", selectedValue),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    AnimatedButton(
+                        onClick = { selectedValue += 0.5f },
+                        lightColor = lightBlue,
+                        darkColor = darkBlue,
+                        content = { Text("+", color = Color.Black) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                AnimatedButton(
+                    onClick = {
+                        onValueChange(selectedValue)
+                        onDismiss()
+                    },
+                    lightColor = lightGreen,
+                    darkColor = darkGreen,
+                    modifier = Modifier.fillMaxWidth(),
+                    content = { Text("Confirm", color = Color.Black) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedButton(
+    onClick: () -> Unit,
+    lightColor: Color,
+    darkColor: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.1f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPressed) darkColor else lightColor,
+        animationSpec = tween(durationMillis = 100)
+    )
+
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
+        interactionSource = interactionSource,
+        modifier = modifier.graphicsLayer(
+            scaleX = scale,
+            scaleY = scale
+        )
+    ) {
+        content()
+    }
+}
+
 @Composable
 fun Distance(distance: Float) {
+    var showPicker by remember { mutableStateOf(false) }
+    var targetDistance by remember { mutableStateOf(5.0f) }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Row(
-            Modifier
-                .fillMaxWidth(),
+            Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             val distances = Math.round(distance * 10) / 10.0
@@ -265,7 +395,7 @@ fun Distance(distance: Float) {
                 color = Color.Red,
                 fontStyle = FontStyle.Italic,
                 lineHeight = 80.sp,
-                modifier = Modifier.offset(y = (-14).dp)  // Reduced line height
+                modifier = Modifier.offset(y = (-14).dp)
             )
             Text(
                 "/",
@@ -274,16 +404,18 @@ fun Distance(distance: Float) {
                 color = Color.Red,
                 fontStyle = FontStyle.Italic,
                 lineHeight = 80.sp,
-                modifier = Modifier.offset(y = (-14).dp)  // Reduced line height
+                modifier = Modifier.offset(y = (-14).dp)
             )
             Text(
-                "5.0",
+                text = String.format("%.1f", targetDistance),
                 fontSize = 100.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Red,
                 fontStyle = FontStyle.Italic,
                 lineHeight = 80.sp,
-                modifier = Modifier.offset(y = (-14).dp), // Reduced line height
+                modifier = Modifier
+                    .offset(y = (-14).dp)
+                    .clickable { showPicker = true }
             )
         }
         Row(
@@ -308,6 +440,14 @@ fun Distance(distance: Float) {
                 color = Color.Red,
             )
         }
+    }
+
+    if (showPicker) {
+        DistancePickerPopup(
+            currentValue = targetDistance,
+            onValueChange = { newValue -> targetDistance = newValue },
+            onDismiss = { showPicker = false }
+        )
     }
 }
 

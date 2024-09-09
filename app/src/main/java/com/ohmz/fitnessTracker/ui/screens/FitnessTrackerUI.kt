@@ -22,8 +22,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -40,17 +38,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -77,18 +70,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -99,116 +87,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun AnimatedCheckCircle(
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    size: Dp = 40.dp,
-    label: String,
-    onLabelChange: (String) -> Unit
-) {
-    val backgroundColor by animateColorAsState(
-        if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F), label = "backgroundColor"
-    )
-    val cornerRadius = size / 4
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val indication = rememberRipple(bounded = true, radius = size / 2)
-
-    var isEditing by remember { mutableStateOf(false) }
-    var editableLabel by remember { mutableStateOf(label) }
-
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    val squareAnimation = rememberInfiniteTransition(label = "squareAnimation")
-    val squareAlpha by squareAnimation.animateFloat(
-        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
-            animation = tween(1000), repeatMode = RepeatMode.Reverse
-        ), label = "squareAlpha"
-    )
-
-    Box(modifier = Modifier
-        .size(size)
-        .drawBehind {
-            if (isChecked) {
-                val animatedSize = size.toPx() + 10.dp.toPx() * squareAlpha
-                val offset = (animatedSize - size.toPx()) / 2
-
-                drawRoundRect(
-                    color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
-                    topLeft = Offset(-offset, -offset),
-                    size = Size(animatedSize, animatedSize),
-                    cornerRadius = CornerRadius(cornerRadius.toPx()),
-                    style = Stroke(width = 2.dp.toPx())
-                )
-            }
-        }
-        .background(backgroundColor, RoundedCornerShape(cornerRadius))
-        .indication(interactionSource, indication)
-        .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-            if (!isEditing) {
-                onCheckedChange(!isChecked)
-                if (isChecked) {
-                    isEditing = false
-                    keyboardController?.hide()
-                }
-            }
-        }, onLongClick = {
-            if (!isChecked) {
-                isEditing = true
-                editableLabel = ""
-            }
-        }), contentAlignment = Alignment.Center
-    ) {
-        if (!isChecked) {
-            if (isEditing) {
-                BasicTextField(value = editableLabel,
-                    onValueChange = {
-                        editableLabel = it
-                        onLabelChange(it)
-                    },
-                    textStyle = TextStyle(
-                        color = Color.White,
-                        fontSize = (size.value * 0.3).sp,
-                        textAlign = TextAlign.Center
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxSize(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        isEditing = false
-                        keyboardController?.hide()
-                    }),
-                    cursorBrush = SolidColor(Color.Red),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()
-                        ) {
-                            innerTextField()
-                        }
-                    })
-            } else {
-                Text(
-                    text = label,
-                    color = Color.White,
-                    fontSize = (size.value * 0.3).sp,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Checked",
-                tint = Color.White,
-                modifier = Modifier.size(size * 0.6f)
-            )
-        }
-    }
-}
 
 @Composable
 fun LabelProgressIndicator(
