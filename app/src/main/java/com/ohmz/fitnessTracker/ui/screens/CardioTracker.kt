@@ -176,7 +176,7 @@ fun CardioTracker(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 34.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Card(
@@ -195,7 +195,7 @@ fun CardioTracker(
                     onTargetDistanceChange = onTargetDistanceChange
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(0.5f))
             PlayButton(
                 isTracking = isTracking,
                 onToggle = { newIsTracking ->

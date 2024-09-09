@@ -293,6 +293,79 @@ fun WorkoutTypeButton(
     }
 }
 
+
+@Composable
+fun ScrollButtons(onScrollUp: () -> Unit, onScrollDown: () -> Unit, alpha: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(end = 16.dp)
+    ) {
+        // Scroll Up Button
+        AnimatedScrollButton(
+            onClick = onScrollUp,
+            icon = Icons.Filled.KeyboardArrowUp,
+            contentDescription = "Scroll to top",
+            alpha = alpha,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
+
+        // Scroll Down Button
+        AnimatedScrollButton(
+            onClick = onScrollDown,
+            icon = Icons.Filled.KeyboardArrowDown,
+            contentDescription = "Scroll to bottom",
+            alpha = alpha,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(top = 160.dp)
+        )
+    }
+}
+
+@Composable
+fun AnimatedScrollButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String,
+    alpha: Float,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0.8f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
+        ), label = ""
+    )
+
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 100),
+        label = ""
+    )
+
+    Box(
+        modifier = modifier
+            .alpha(alpha * buttonAlpha)
+            .graphicsLayer(
+                scaleX = scale, scaleY = scale
+            )
+    ) {
+        FloatingActionButton(
+            onClick = onClick,
+            containerColor = Color.Red.copy(alpha = buttonAlpha),
+            contentColor = Color.White,
+            interactionSource = interactionSource
+        ) {
+            Icon(
+                imageVector = icon, contentDescription = contentDescription
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 fun FitnessTrackerUI() {
@@ -468,78 +541,6 @@ fun FitnessTrackerUI() {
 }
 
 @Composable
-fun ScrollButtons(onScrollUp: () -> Unit, onScrollDown: () -> Unit, alpha: Float) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(end = 16.dp)
-    ) {
-        // Scroll Up Button
-        AnimatedScrollButton(
-            onClick = onScrollUp,
-            icon = Icons.Filled.KeyboardArrowUp,
-            contentDescription = "Scroll to top",
-            alpha = alpha,
-            modifier = Modifier.align(Alignment.CenterEnd)
-        )
-
-        // Scroll Down Button
-        AnimatedScrollButton(
-            onClick = onScrollDown,
-            icon = Icons.Filled.KeyboardArrowDown,
-            contentDescription = "Scroll to bottom",
-            alpha = alpha,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(top = 160.dp)
-        )
-    }
-}
-
-@Composable
-fun AnimatedScrollButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String,
-    alpha: Float,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 1f else 0.8f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
-        ), label = ""
-    )
-
-    val buttonAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 1f else 0.8f,
-        animationSpec = tween(durationMillis = 100),
-        label = ""
-    )
-
-    Box(
-        modifier = modifier
-            .alpha(alpha * buttonAlpha)
-            .graphicsLayer(
-                scaleX = scale, scaleY = scale
-            )
-    ) {
-        FloatingActionButton(
-            onClick = onClick,
-            containerColor = Color.Red.copy(alpha = buttonAlpha),
-            contentColor = Color.White,
-            interactionSource = interactionSource
-        ) {
-            Icon(
-                imageVector = icon, contentDescription = contentDescription
-            )
-        }
-    }
-}
-
-@Composable
 fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
     val animatedWorkoutProgress by animateFloatAsState(
         targetValue = workoutProgress,
@@ -553,8 +554,8 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
         label = "distanceProgressAnimation"
     )
 
-    val workoutColor = Color(0xFF11FF00)  // Brown color for workout (outer ring)
-    val distanceColor = Color(0xFF007BFF) // Bronze color for distance/cardio (inner ring)
+    val workoutColor = Color(0xFF56CE5B)  // Green color for workout (outer ring)
+    val distanceColor = Color(0xD200E2FF) // Blue color for distance/cardio (inner ring)
 
     val density = LocalDensity.current
 
@@ -566,21 +567,35 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
             val canvasWidth = size.toPx()
             val canvasHeight = size.toPx()
             val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
+
+            // Calculate radii and stroke width based on the size
             val outerRadius =
-                (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 16.dp.toPx() }) / 2f
-            val innerRadius = outerRadius - with(density) { 60.dp.toPx() }
-            val strokeWidth = with(density) { 50.dp.toPx() }
+                (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 8.dp.toPx() }) / 2f
+
+            // Adjust stroke width and inner radius based on size
+            val strokeWidth: Float
+            val innerRadius: Float
+
+            if (size < 200.dp) {
+                // Shrunk mode: Increase ring thickness
+                strokeWidth = outerRadius * 0.4f
+                innerRadius = outerRadius - strokeWidth
+            } else {
+                // Expanded mode: Keep original thickness, make rings touch
+                strokeWidth = outerRadius * 0.3f
+                innerRadius = outerRadius - strokeWidth
+            }
 
             // Draw outline circles
             drawCircle(
-                color = workoutColor.copy(alpha = 0.3f),
-                radius = outerRadius,
+                color = workoutColor.copy(alpha = 0.5f),
+                radius = outerRadius - strokeWidth / 2,
                 center = center,
                 style = Stroke(width = strokeWidth)
             )
             drawCircle(
                 color = distanceColor.copy(alpha = 0.3f),
-                radius = innerRadius,
+                radius = innerRadius - strokeWidth / 2,
                 center = center,
                 style = Stroke(width = strokeWidth)
             )
@@ -591,8 +606,14 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 startAngle = -90f,
                 sweepAngle = animatedWorkoutProgress * 360f,
                 useCenter = false,
-                topLeft = Offset(center.x - outerRadius, center.y - outerRadius),
-                size = Size(outerRadius * 2, outerRadius * 2),
+                topLeft = Offset(
+                    center.x - outerRadius + strokeWidth / 2,
+                    center.y - outerRadius + strokeWidth / 2
+                ),
+                size = Size(
+                    (outerRadius - strokeWidth / 2) * 2,
+                    (outerRadius - strokeWidth / 2) * 2
+                ),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
 
@@ -602,8 +623,14 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 startAngle = -90f,
                 sweepAngle = animatedDistanceProgress * 360f,
                 useCenter = false,
-                topLeft = Offset(center.x - innerRadius, center.y - innerRadius),
-                size = Size(innerRadius * 2, innerRadius * 2),
+                topLeft = Offset(
+                    center.x - innerRadius + strokeWidth / 2,
+                    center.y - innerRadius + strokeWidth / 2
+                ),
+                size = Size(
+                    (innerRadius - strokeWidth / 2) * 2,
+                    (innerRadius - strokeWidth / 2) * 2
+                ),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
         }
@@ -619,9 +646,10 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 contentDescription = "Workout Icon",
                 tint = Color.White,
                 modifier = Modifier
-                    .size(size * 0.10f)  // Reduced size
-                    .offset(y = -(size * 0.50f))  // Adjusted position
+                    .size(size * 0.13f)
+                    .offset(y = -(size * 0.41f))
             )
+            Log.d("iconSide", "Running Icon ${-(size * 0.41f)}")
 
             // Running icon (overlapping inner ring)
             Icon(
@@ -629,9 +657,16 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 contentDescription = "Running Icon",
                 tint = Color.White,
                 modifier = Modifier
-                    .size(size * 0.15f)  // Reduced size
-                    .offset(y = (size * 0.325f))  // Adjusted position
+                    .size(size * 0.17f)
+                    .offset(
+                        y = -(size * 0.27f)
+                    )
             )
+            Log.d("iconSide", "Running Icon ${-(size * 0.27f)}")
+
         }
     }
 }
+
+
+
