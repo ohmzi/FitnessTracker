@@ -1,13 +1,20 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.ohmz.fitnessTracker.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Location
+import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -15,6 +22,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -22,7 +30,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +42,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,112 +57,135 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 
 @Preview
 @Composable
 fun CardioTracker() {
     val context = LocalContext.current
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
+    var hasLocationPermission by remember { mutableStateOf(false) }
+    var isTracking by remember { mutableStateOf(false) }
+    var distance by remember { mutableFloatStateOf(0f) } // in meters
+    var time by remember { mutableLongStateOf(0L) } // in milliseconds
+    var pace by remember { mutableFloatStateOf(0f) } // in minutes per kilometer
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Google Map as background
-        GoogleMap(hasLocationPermission)
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var lastLocation by remember { mutableStateOf<Location?>(null) }
 
-        // Overlay with CardioTracker UI
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            RunningStats()
-            Distance()
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(50.dp),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            PlayButton()
-        }
-    }
-}
-
-@Composable
-fun GoogleMap(hasLocationPermission: Boolean) {
-    var isMapLoaded by remember { mutableStateOf(false) }
-    var mapLoadError by remember { mutableStateOf<String?>(null) }
-
-    val singapore = LatLng(1.35, 103.87)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(singapore, 10f)
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        GoogleMap(modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = hasLocationPermission, mapType = MapType.NORMAL
-            ),
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = true, myLocationButtonEnabled = true
-            ),
-            onMapLoaded = {
-                isMapLoaded = true
-                Log.d("GoogleMap", "Map loaded successfully")
-            }) {
-            // You can add markers or other map content here
-        }
-
-        if (!isMapLoaded) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-
-        mapLoadError?.let { error ->
-            Text(
-                text = "Error loading map: $error", modifier = Modifier.align(Alignment.Center)
-            )
-        }
-    }
-
-    LaunchedEffect(hasLocationPermission) {
-        if (!hasLocationPermission) {
-            Log.w("GoogleMap", "Location permission not granted")
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            if (!isMapLoaded) {
-                mapLoadError = "Map failed to load"
-                Log.e("GoogleMap", "Map failed to load")
+    val locationCallback = remember {
+        object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                val location = locationResult.lastLocation ?: return
+                if (lastLocation != null) {
+                    val newDistance = lastLocation!!.distanceTo(location)
+                    distance += newDistance
+                    if (distance % 100 < newDistance) {
+                        // Update UI for every 100m
+                        // This is handled automatically by the state
+                    }
+                }
+                lastLocation = location
             }
         }
     }
+
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            val locationRequest = LocationRequest.create().apply {
+                interval = 5000
+                fastestInterval = 2000
+                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            }
+            if (hasLocationPermission) {
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return@LaunchedEffect
+                }
+                fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
+            }
+
+            // Start a coroutine for the timer
+            launch {
+                val startTime = SystemClock.elapsedRealtime()
+                while (isTracking) {
+                    delay(1000) // Update every second
+                    time = SystemClock.elapsedRealtime() - startTime
+                    // Calculate pace (minutes per kilometer)
+                    if (distance > 0) {
+                        pace = (time / 60000f) / (distance / 1000f)
+                    }
+                }
+            }
+        } else {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        LocationPermissionRequest { granted ->
+            hasLocationPermission = granted
+        }
+
+        if (hasLocationPermission) {
+            GoogleMap(hasLocationPermission = true)
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Location permission is required to track your run.")
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            RunningStatss(
+                time = formatTime(time),
+                //
+                pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
+            )
+            Distance(distance = distance / 1000f) // Convert to km)
+            Spacer(modifier = Modifier.weight(1f))
+            PlayButton(
+                isTracking = isTracking
+            )
+        }
+    }
+
 }
 
 @Composable
-fun RunningStats() {
+fun RunningStatss(time: String, pace: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
@@ -168,9 +204,9 @@ fun RunningStats() {
                     fontSize = 18.sp,
                 )
                 Text(
-                    "00:00",
+                    text = time,
                     color = Color.Red,
-                    fontSize = 48.sp,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -195,9 +231,9 @@ fun RunningStats() {
                     )
                 }
                 Text(
-                    "00:00",
+                    text = pace,
                     color = Color.Red,
-                    fontSize = 48.sp,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -212,8 +248,9 @@ fun RunningStats() {
     }
 }
 
+
 @Composable
-fun Distance() {
+fun Distance(distance: Float) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -224,7 +261,7 @@ fun Distance() {
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Text(
-                "0.0",
+                text = distance.toString(),
                 fontSize = 100.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Red,
@@ -277,7 +314,7 @@ fun Distance() {
 }
 
 @Composable
-fun PlayButton() {
+fun PlayButton(isTracking: Boolean) {
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -317,11 +354,182 @@ fun PlayButton() {
             modifier = Modifier.size(140.dp) // Match the size of the Box
         ) {
             Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Play",
+                imageVector = if (isTracking) Icons.Default.Menu else Icons.Default.PlayArrow,
+                contentDescription = if (isTracking) "Pause" else "Play",
                 tint = Color.White,
                 modifier = Modifier.size(100.dp) // Increased icon size
             )
         }
+    }
+}
+
+
+fun formatTime(timeInMillis: Long): String {
+    val seconds = (timeInMillis / 1000) % 60
+    val minutes = (timeInMillis / (1000 * 60)) % 60
+    val hours = (timeInMillis / (1000 * 60 * 60)) % 24
+    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+}
+
+
+@Composable
+fun GoogleMap(hasLocationPermission: Boolean) {
+    var isMapLoaded by remember { mutableStateOf(false) }
+    var mapLoadError by remember { mutableStateOf<String?>(null) }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(0.0, 0.0), 10f)
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                    location?.let {
+                        currentLocation = LatLng(it.latitude, it.longitude)
+                        cameraPositionState.position =
+                            CameraPosition.fromLatLngZoom(currentLocation!!, 15f)
+                    }
+                }
+            } catch (e: SecurityException) {
+                Log.e("GoogleMap", "Error getting location", e)
+            }
+        } else {
+            Log.w("GoogleMap", "Location permission not granted")
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                isMyLocationEnabled = hasLocationPermission,
+                mapType = MapType.NORMAL
+            ),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true,
+                myLocationButtonEnabled = true
+            ),
+            onMapLoaded = {
+                isMapLoaded = true
+                Log.d("GoogleMap", "Map loaded successfully")
+            }
+        ) {
+            currentLocation?.let { location ->
+                Marker(
+                    state = MarkerState(position = location),
+                    title = "Current Location",
+                    snippet = "You are here"
+                )
+            }
+        }
+
+        if (!isMapLoaded) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+
+        mapLoadError?.let { error ->
+            Text(
+                text = "Error loading map: $error",
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!isMapLoaded) {
+                mapLoadError = "Map failed to load"
+                Log.e("GoogleMap", "Map failed to load")
+            }
+        }
+    }
+}
+
+@Composable
+fun LocationPermissionRequest(
+    onPermissionResult: (Boolean) -> Unit
+) {
+    val context = LocalContext.current
+    var showRationale by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            onPermissionResult(isGranted)
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                onPermissionResult(true)
+            }
+
+            shouldShowRequestPermissionRationale(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) -> {
+                showRationale = true
+            }
+
+            else -> {
+                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+    }
+
+    if (showRationale) {
+        AlertDialog(
+            onDismissRequest = { showRationale = false },
+            title = { Text("Location Permission Required") },
+            text = {
+                Text(
+                    "This app needs access to your precise location to show it on the map. " +
+                            "Please grant the location permission."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRationale = false
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                ) {
+                    Text("Grant Permission")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        showRationale = false
+                        onPermissionResult(false)
+                    }
+                ) {
+                    Text("Deny")
+                }
+            }
+        )
+    }
+}
+
+private fun shouldShowRequestPermissionRationale(
+    context: android.content.Context,
+    permission: String
+): Boolean {
+    return if (context is androidx.activity.ComponentActivity) {
+        context.shouldShowRequestPermissionRationale(permission)
+    } else {
+        false
     }
 }
