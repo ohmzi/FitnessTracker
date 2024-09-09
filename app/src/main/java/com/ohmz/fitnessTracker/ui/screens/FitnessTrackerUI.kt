@@ -314,7 +314,7 @@ fun WorkoutTypeSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(

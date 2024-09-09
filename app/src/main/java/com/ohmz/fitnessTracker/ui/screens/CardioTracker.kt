@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -149,11 +151,19 @@ fun CardioTracker() {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            RunningStatss(
-                time = formatTime(time),
-                pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
-            )
-            Distance(distance = distance / 1000f) // Convert to km
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.6f)
+                )
+            ) {
+                RunningStatss(
+                    time = formatTime(time),
+                    pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
+                )
+                Distance(distance = distance / 1000f) // Convert to km
+            }
             Spacer(modifier = Modifier.weight(1f))
             PlayButton(
                 isTracking = isTracking,
