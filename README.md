@@ -9,4 +9,8 @@ MAPS_API_KEY=MAPS_API_KEY_TO_BE_ADDED_HERE
 
 ![alt text](https://github.com/ohmzi/FitnessTracker/blob/main/screenshots/WorkoutScreen.png)
 
+![alt text](https://github.com/ohmzi/FitnessTracker/blob/main/screenshots/ScaleChange.png)
+
+![alt text](https://github.com/ohmzi/FitnessTracker/blob/main/screenshots/ScaleChange2.png)
+
 ![alt text](https://github.com/ohmzi/FitnessTracker/blob/main/screenshots/MainScreen.gif)
