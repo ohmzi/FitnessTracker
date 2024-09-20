@@ -52,7 +52,7 @@ android {
 
 secrets {
     //MAPS_API_KEY=YOUR_API_KEY
-    propertiesFileName = "secrets.properties"
+    propertiesFileName = "local.properties"
 }
 
 dependencies {
