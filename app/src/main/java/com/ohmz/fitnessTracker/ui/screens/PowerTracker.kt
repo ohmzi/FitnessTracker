@@ -1,24 +1,13 @@
 package com.ohmz.fitnessTracker.ui.screens
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,19 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.ripple.rememberRipple
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -49,20 +26,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.ohmz.fitnessTracker.ui.components.AddNewExerciseRow
+import com.ohmz.fitnessTracker.ui.components.IndividualWorkoutButton
+import com.ohmz.fitnessTracker.ui.components.WeightButtons
 import kotlin.math.roundToInt
 
 @Composable
@@ -105,10 +77,11 @@ fun PowerTracker(
                 zoomFactor = (zoomFactor * zoom).coerceIn(1f, 1.6f)
             }
         }) {
-        HeaderRow(visibleSets, rowHeight)
+        WorkoutListGridColumnLabel(visibleSets, rowHeight)
 
         activities.forEachIndexed { index, activity ->
-            ActivityRow(activities = activities,
+            WorkoutListGrid(
+                activities = activities,
                 activity = activity,
                 index = index,
                 visibleSets = visibleSets,
@@ -142,35 +115,7 @@ fun PowerTracker(
 }
 
 @Composable
-private fun HeaderRow(visibleSets: List<String>, rowHeight: Dp) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 30.dp)
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .height(rowHeight / 2),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text("Type", color = Color.White)
-        }
-        visibleSets.forEach { day ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(rowHeight / 2), contentAlignment = Alignment.Center
-            ) {
-                Text(day, color = Color.White, textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActivityRow(
+private fun WorkoutListGrid(
     activities: List<String>,
     activity: String,
     index: Int,
@@ -220,7 +165,7 @@ private fun ActivityRow(
                         }
                     })
         ) {
-            LabelProgressIndicator(
+            IndividualWorkoutButton(
                 label = activity,
                 progress = progress,
                 modifier = Modifier
@@ -235,7 +180,8 @@ private fun ActivityRow(
                         .height(rowHeight),
                     contentAlignment = Alignment.Center
                 ) {
-                    AnimatedCheckCircle(isChecked = checkStates.getOrNull(index)
+                    WeightButtons(
+                        isChecked = checkStates.getOrNull(index)
                         ?.getOrNull(colIndex) ?: false,
                         onCheckedChange = { newState ->
                             val newCheckStates = checkStates.mapIndexed { rowIdx, row ->
@@ -252,12 +198,15 @@ private fun ActivityRow(
                         onLabelChange = { newLabel ->
                             val newLabelStates = labelStates.mapIndexed { rowIdx, row ->
                                 if (rowIdx == index) {
-                                    val baseValue = newLabel.toIntOrNull() ?: 40
-                                    row.mapIndexed { colIdx, currentValue ->
+                                    val baseValue = newLabel.toIntOrNull() ?: return@mapIndexed row
+                                    row.mapIndexed { colIdx, _ ->
                                         when {
-                                            colIdx < colIndex -> currentValue
+                                            colIdx < colIndex -> row[colIdx]
                                             colIdx == colIndex -> newLabel
-                                            else -> (baseValue + (colIdx - colIndex) * 10).toString()
+                                            else -> (baseValue + (colIdx - colIndex) * 10).coerceIn(
+                                                0,
+                                                999
+                                            ).toString()
                                         }
                                     }
                                 } else row
@@ -271,224 +220,31 @@ private fun ActivityRow(
 }
 
 @Composable
-private fun AddNewExerciseRow(
-    newExerciseName: String, onNewExerciseNameChange: (String) -> Unit, onAddExercise: () -> Unit
-) {
+fun WorkoutListGridColumnLabel(visibleSets: List<String>, rowHeight: Dp) {
     Row(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 30.dp)
     ) {
-        TextField(
-            value = newExerciseName,
-            onValueChange = onNewExerciseNameChange,
-            label = { Text("New Exercise", color = Color.White) },
-            colors = TextFieldDefaults.colors(
-                unfocusedTextColor = Color.White,
-                focusedTextColor = Color.White,
-                cursorColor = Color.White,
-                focusedIndicatorColor = Color.White,
-                unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                unfocusedContainerColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp)
-        )
-        Button(
-            onClick = onAddExercise,
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-        ) {
-            Text("Add", color = Color.Black)
-        }
-    }
-}
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun AnimatedCheckCircle(
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    size: Dp = 40.dp,
-    label: String,
-    onLabelChange: (String) -> Unit
-) {
-    var showEditPopup by remember { mutableStateOf(false) }
-    val backgroundColor by animateColorAsState(
-        if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F), label = "backgroundColor"
-    )
-    val cornerRadius = size / 4
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val indication = rememberRipple(bounded = true, radius = size / 2)
-
-    val squareAnimation = rememberInfiniteTransition(label = "squareAnimation")
-    val squareAlpha by squareAnimation.animateFloat(
-        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
-            animation = tween(1000), repeatMode = RepeatMode.Reverse
-        ), label = "squareAlpha"
-    )
-
-    Box(modifier = Modifier
-        .size(size)
-        .drawBehind {
-            if (isChecked) {
-                val animatedSize = size.toPx() + 10.dp.toPx() * squareAlpha
-                val offset = (animatedSize - size.toPx()) / 2
-
-                drawRoundRect(
-                    color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
-                    topLeft = Offset(-offset, -offset),
-                    size = Size(animatedSize, animatedSize),
-                    cornerRadius = CornerRadius(cornerRadius.toPx()),
-                    style = Stroke(width = 2.dp.toPx())
-                )
-            }
-        }
-        .background(backgroundColor, RoundedCornerShape(cornerRadius))
-        .indication(interactionSource, indication)
-        .combinedClickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = { onCheckedChange(!isChecked) },
-            onLongClick = { if (!isChecked) showEditPopup = true }
-        ), contentAlignment = Alignment.Center
-    ) {
-        if (!isChecked) {
-            Text(
-                text = label,
-                color = Color.White,
-                fontSize = (size.value * 0.3).sp,
-                textAlign = TextAlign.Center
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Checked",
-                tint = Color.White,
-                modifier = Modifier.size(size * 0.6f)
-            )
-        }
-    }
-
-    if (showEditPopup) {
-        LabelEditPopup(
-            currentValue = label.toIntOrNull() ?: 0,
-            onValueChange = { newValue ->
-                onLabelChange(newValue.toString())
-                showEditPopup = false
-            },
-            onDismiss = { showEditPopup = false }
-        )
-    }
-}
-
-@Composable
-fun LabelEditPopup(
-    currentValue: Int,
-    onValueChange: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var selectedValue by remember { mutableStateOf(currentValue) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
+        Box(
+            Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+                .weight(1f)
+                .height(rowHeight / 2),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text("Type", color = Color.White)
+        }
+        visibleSets.forEach { day ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(rowHeight / 2), contentAlignment = Alignment.Center
             ) {
-                Text("Edit Value", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                NumberPicker(
-                    value = selectedValue,
-                    onValueChange = { selectedValue = it },
-                    range = (0..100),
-                    step = 5
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                AnimatedButton2(
-                    onClick = { onValueChange(selectedValue) },
-                    lightColor = Color(0xFF90EE90),
-                    darkColor = Color(0xFF32CD32),
-                    modifier = Modifier.fillMaxWidth(),
-                    content = { Text("Confirm", color = Color.Black) }
-                )
+                Text(day, color = Color.White, textAlign = TextAlign.Center)
             }
         }
     }
 }
 
-@Composable
-fun NumberPicker(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    range: IntRange,
-    step: Int
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        AnimatedButton2(
-            onClick = { onValueChange((value - step).coerceIn(range)) },
-            lightColor = Color(0xFFFFCCCB),
-            darkColor = Color(0xFFFF6961),
-            content = { Text("-", color = Color.Black) }
-        )
-        Text(
-            text = value.toString(),
-            modifier = Modifier.padding(horizontal = 16.dp),
-            style = MaterialTheme.typography.headlineMedium
-        )
-        AnimatedButton2(
-            onClick = { onValueChange((value + step).coerceIn(range)) },
-            lightColor = Color(0xFFADD8E6),
-            darkColor = Color(0xFF6495ED),
-            content = { Text("+", color = Color.Black) }
-        )
-    }
-}
 
-@Composable
-fun AnimatedButton2(
-    onClick: () -> Unit,
-    lightColor: Color,
-    darkColor: Color,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 1.1f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
-    )
-
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isPressed) darkColor else lightColor,
-        animationSpec = tween(durationMillis = 100)
-    )
-
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
-        interactionSource = interactionSource,
-        modifier = modifier.graphicsLayer(
-            scaleX = scale,
-            scaleY = scale
-        )
-    ) {
-        content()
-    }
-}
