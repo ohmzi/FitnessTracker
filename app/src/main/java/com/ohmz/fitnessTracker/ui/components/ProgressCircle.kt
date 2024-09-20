@@ -1,6 +1,5 @@
 package com.ohmz.fitnessTracker.ui.components
 
-import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -23,6 +22,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.ui.theme.distanceColor
+import com.ohmz.fitnessTracker.ui.theme.workoutColor
 import com.ohmz.fitnesstracker.R
 
 @Composable
@@ -39,9 +40,6 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
         label = "distanceProgressAnimation"
     )
 
-    val workoutColor = Color(0xFF56CE5B)  // Green color for workout (outer ring)
-    val distanceColor = Color(0xD200E2FF) // Blue color for distance/cardio (inner ring)
-
     val density = LocalDensity.current
 
     Box(
@@ -52,25 +50,20 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
             val canvasHeight = size.toPx()
             val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
 
-            // Calculate radii and stroke width based on the size
             val outerRadius =
                 (canvasWidth.coerceAtMost(canvasHeight) - with(density) { 8.dp.toPx() }) / 2f
 
-            // Adjust stroke width and inner radius based on size
             val strokeWidth: Float
             val innerRadius: Float
 
             if (size < 200.dp) {
-                // Shrunk mode: Increase ring thickness
                 strokeWidth = outerRadius * 0.4f
                 innerRadius = outerRadius - strokeWidth
             } else {
-                // Expanded mode: Keep original thickness, make rings touch
                 strokeWidth = outerRadius * 0.3f
                 innerRadius = outerRadius - strokeWidth
             }
 
-            // Draw outline circles
             drawCircle(
                 color = workoutColor.copy(alpha = 0.5f),
                 radius = outerRadius - strokeWidth / 2,
@@ -84,7 +77,6 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 style = Stroke(width = strokeWidth)
             )
 
-            // Draw workout progress arc
             drawArc(
                 color = workoutColor,
                 startAngle = -90f,
@@ -100,7 +92,6 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
 
-            // Draw distance progress arc
             drawArc(
                 color = distanceColor,
                 startAngle = -90f,
@@ -117,11 +108,9 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
             )
         }
 
-        // Draw icons
         Box(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
         ) {
-            // Workout icon (overlapping outer ring)
             Icon(
                 painter = painterResource(id = R.drawable.ic_workout),
                 contentDescription = "Workout Icon",
@@ -130,9 +119,6 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                     .size(size * 0.13f)
                     .offset(y = -(size * 0.41f))
             )
-            Log.d("iconSide", "Running Icon ${-(size * 0.41f)}")
-
-            // Running icon (overlapping inner ring)
             Icon(
                 painter = painterResource(id = R.drawable.ic_running),
                 contentDescription = "Running Icon",
@@ -143,8 +129,6 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
                         y = -(size * 0.27f)
                     )
             )
-            Log.d("iconSide", "Running Icon ${-(size * 0.27f)}")
-
         }
     }
 }

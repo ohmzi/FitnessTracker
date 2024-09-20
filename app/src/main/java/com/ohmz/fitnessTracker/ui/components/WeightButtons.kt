@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
+import com.ohmz.fitnessTracker.ui.theme.weightButtonUnchecked
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -49,7 +51,7 @@ fun WeightButtons(
 ) {
     var showEditPopup by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
-        if (isChecked) Color(0xFF4CAF50) else Color(0xFF37474F), label = "backgroundColor"
+        if (isChecked) weightButtonChecked else weightButtonUnchecked, label = "backgroundColor"
     )
     val cornerRadius = size / 4
 
@@ -71,7 +73,7 @@ fun WeightButtons(
                 val offset = (animatedSize - size.toPx()) / 2
 
                 drawRoundRect(
-                    color = Color(0xFF4CAF50).copy(alpha = 1f - squareAlpha),
+                    color = weightButtonChecked.copy(alpha = 1f - squareAlpha),
                     topLeft = Offset(-offset, -offset),
                     size = Size(animatedSize, animatedSize),
                     cornerRadius = CornerRadius(cornerRadius.toPx()),

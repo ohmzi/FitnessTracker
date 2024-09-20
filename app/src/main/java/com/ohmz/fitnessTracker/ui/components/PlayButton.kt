@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
 
 @Composable
 fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
@@ -48,7 +49,7 @@ fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
     )
 
     val backgroundColor =
-        if (isTracking) Color.Red else Color(0xFF4CAF50) // Green when not tracking
+        if (isTracking) Color.Red else weightButtonChecked // Green when not tracking
 
     Box(
         modifier = Modifier

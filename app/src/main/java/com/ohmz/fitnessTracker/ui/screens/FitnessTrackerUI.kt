@@ -1,6 +1,5 @@
 package com.ohmz.fitnessTracker.ui.screens
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,6 +40,9 @@ import com.ohmz.fitnessTracker.ui.components.ProgressCircle
 import com.ohmz.fitnessTracker.ui.components.ScrollButtons
 import com.ohmz.fitnessTracker.ui.components.TopBar
 import com.ohmz.fitnessTracker.ui.components.WorkoutTypeSection
+import com.ohmz.fitnessTracker.ui.theme.BackgroundColor1
+import com.ohmz.fitnessTracker.ui.theme.BackgroundColor2
+import com.ohmz.fitnessTracker.ui.theme.BackgroundColor3
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -75,8 +77,6 @@ fun FitnessTrackerUI() {
     val distanceProgress by remember((distance / 1000), targetDistance) {
         derivedStateOf { ((distance / 1000) / targetDistance).coerceIn(0f, 1f) }
     }
-    Log.d("distanceProgress", "distance $distance")
-    Log.d("distanceProgress", "targetDistance $targetDistance")
 
     val density = LocalDensity.current
     val expandedOffset = (-16).dp
@@ -102,7 +102,7 @@ fun FitnessTrackerUI() {
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFF69B4), Color(0xFFFF8C00), Color(0xFF4169E1)
+                        BackgroundColor1, BackgroundColor2, BackgroundColor3
                     )
                 )
             )

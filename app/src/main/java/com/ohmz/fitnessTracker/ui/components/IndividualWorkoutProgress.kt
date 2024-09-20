@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
+import com.ohmz.fitnessTracker.ui.theme.workoutExerciseLabel
 
 @Composable
 fun IndividualWorkoutButton(
@@ -43,7 +45,7 @@ fun IndividualWorkoutButton(
     )
 
     val outlineColor by animateColorAsState(
-        targetValue = if (progress >= 1f) Color(0xFF4CAF50) else Color.White,
+        targetValue = if (progress >= 1f) weightButtonChecked else Color.White,
         label = "outlineColorAnimation"
     )
     val phase = rememberInfiniteTransition(label = "phaseAnimation").animateFloat(
@@ -73,12 +75,12 @@ fun IndividualWorkoutButton(
             )
         }
         .clip(RoundedCornerShape(16.dp))
-        .background(Color(0xFF37474F))
+        .background(workoutExerciseLabel)
         .drawWithContent {
             val cornerRadius = 16.dp.toPx()
 
             drawRoundRect(
-                color = Color(0xFF4CAF50),
+                color = weightButtonChecked,
                 topLeft = Offset.Zero,
                 size = Size(size.width * animatedProgress, size.height),
                 cornerRadius = CornerRadius(cornerRadius),

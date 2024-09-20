@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.ui.theme.WorkoutTypeSelected
 
 @Composable
 fun WorkoutTypeSection(
@@ -86,7 +87,7 @@ fun WorkoutTypeButton(
 
     val backgroundColor = when {
         isPressed -> Color.Red // Dark Red when pressed
-        isSelected -> Color(0xFFFF6666) // Light Red when selected
+        isSelected -> WorkoutTypeSelected // Light Red when selected
         else -> Color.LightGray // Default Gray
     }
 

@@ -30,6 +30,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkBlue
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkGreen
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkRed
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightBlue
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightGreen
+import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightRed
 
 
 @Composable
@@ -41,12 +47,6 @@ fun RateSetterDialogBox(
 ) {
     var selectedValue by remember { mutableStateOf(currentValue) }
 
-    val lightRed = Color(0xFFFFCCCB)
-    val darkRed = Color(0xFFFF6961)
-    val lightBlue = Color(0xFFADD8E6)
-    val darkBlue = Color(0xFF6495ED)
-    val lightGreen = Color(0xFF90EE90)
-    val darkGreen = Color(0xFF32CD32)
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -67,8 +67,8 @@ fun RateSetterDialogBox(
                             typeOfWorkout
                         )
                     },
-                        lightColor = lightRed,
-                        darkColor = darkRed,
+                        lightColor = RateSetterDialogBoxLightRed,
+                        darkColor = RateSetterDialogBoxDarkRed,
                         content = { Text("-", color = Color.Black) })
                     Text(
                         text = setDialogChangeUnit(typeOfWorkout, selectedValue),
@@ -76,8 +76,8 @@ fun RateSetterDialogBox(
                         style = MaterialTheme.typography.headlineMedium
                     )
                     AnimatedButton(onClick = { selectedValue += setDialogStepValue(typeOfWorkout) },
-                        lightColor = lightBlue,
-                        darkColor = darkBlue,
+                        lightColor = RateSetterDialogBoxLightBlue,
+                        darkColor = RateSetterDialogBoxDarkBlue,
                         content = { Text("+", color = Color.Black) })
                 }
 
@@ -86,8 +86,8 @@ fun RateSetterDialogBox(
                     onValueChange(selectedValue)
                     onDismiss()
                 },
-                    lightColor = lightGreen,
-                    darkColor = darkGreen,
+                    lightColor = RateSetterDialogBoxLightGreen,
+                    darkColor = RateSetterDialogBoxDarkGreen,
                     modifier = Modifier.fillMaxWidth(),
                     content = { Text("Confirm", color = Color.Black) })
             }
