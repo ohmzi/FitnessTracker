@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.android.mapsplatform.secrets)
+    id("com.google.devtools.ksp") version "1.9.0-1.0.13"
+    id("kotlin-android")
+    id("kotlin-kapt")
 }
 
 android {
@@ -36,6 +39,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    kapt {
+        correctErrorTypes = true
+        arguments {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
+    }
     buildFeatures {
         buildConfig = true
         compose = true
@@ -67,6 +76,9 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
     implementation(libs.androidx.media3.common)
+    implementation(libs.androidx.ui.test.junit4.android)
+    implementation(libs.androidx.room.common)
+    implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -75,5 +87,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.maps.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlin.stdlib)
 
 }

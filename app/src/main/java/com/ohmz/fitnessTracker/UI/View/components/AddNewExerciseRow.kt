@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.UI.View.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnessTracker.Utils.getStringResource
 import com.ohmz.fitnesstracker.R
 
 @Composable

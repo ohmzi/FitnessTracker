@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.UI.View.components
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -15,7 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnessTracker.Utils.getStringResource
 import com.ohmz.fitnesstracker.R
 
 @Composable

@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.UI.View.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -31,8 +31,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
-import com.ohmz.fitnessTracker.ui.theme.workoutExerciseLabel
+import com.ohmz.fitnessTracker.UI.View.theme.weightButtonChecked
+import com.ohmz.fitnessTracker.UI.View.theme.workoutExerciseLabel
 
 @Composable
 fun IndividualWorkoutButton(

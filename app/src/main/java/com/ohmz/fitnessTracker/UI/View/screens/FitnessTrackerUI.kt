@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.screens
+package com.ohmz.fitnessTracker.UI.View.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -22,8 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,17 +34,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.ui.components.ProgressCircle
-import com.ohmz.fitnessTracker.ui.components.ScrollButtons
-import com.ohmz.fitnessTracker.ui.components.TopBar
-import com.ohmz.fitnessTracker.ui.components.WorkoutTypeSection
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor1
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor2
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor3
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ohmz.fitnessTracker.Data.DB.FitnessTrackerDatabase
+import com.ohmz.fitnessTracker.Data.Repository.FitnessTrackerRepository
+import com.ohmz.fitnessTracker.UI.View.components.ProgressCircle
+import com.ohmz.fitnessTracker.UI.View.components.ScrollButtons
+import com.ohmz.fitnessTracker.UI.View.components.TopBar
+import com.ohmz.fitnessTracker.UI.View.components.WorkoutTypeSection
+import com.ohmz.fitnessTracker.UI.View.theme.BackgroundColor1
+import com.ohmz.fitnessTracker.UI.View.theme.BackgroundColor2
+import com.ohmz.fitnessTracker.UI.View.theme.BackgroundColor3
+import com.ohmz.fitnessTracker.UI.ViewModel.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.UI.ViewModel.FitnessTrackerViewModelFactory
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -62,7 +70,6 @@ fun FitnessTrackerUI() {
     var isPowerExpanded by remember { mutableStateOf(false) }
     var isCardioExpanded by remember { mutableStateOf(false) }
 
-    // New state for distance and target distance
     var distance by remember { mutableStateOf(0f) }
     var targetDistance by remember { mutableStateOf(5f) }
 
@@ -73,7 +80,6 @@ fun FitnessTrackerUI() {
             if (totalPossibleChecks > 0) totalChecks.toFloat() / totalPossibleChecks else 0f
         }
     }
-
     val distanceProgress by remember((distance / 1000), targetDistance) {
         derivedStateOf { ((distance / 1000) / targetDistance).coerceIn(0f, 1f) }
     }
@@ -95,6 +101,17 @@ fun FitnessTrackerUI() {
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val database = remember { FitnessTrackerDatabase.getDatabase(context) }
+    val repository = remember { FitnessTrackerRepository(database.fitnessTrackerDao()) }
+    val viewModel: FitnessTrackerViewModel = viewModel(
+        factory = FitnessTrackerViewModelFactory(repository)
+    )
+    // Collect state from ViewModel
+    val cardioSessions by viewModel.cardioSessions.collectAsState()
+    val powerLiftingSessions by viewModel.powerLiftingSessions.collectAsState()
+
+    var time by remember { mutableLongStateOf(0L) }
 
     Box(
         modifier = Modifier
@@ -160,7 +177,21 @@ fun FitnessTrackerUI() {
                             activities = activities,
                             allSets = allSets,
                             checkStates = checkStates,
-                            onCheckStateChange = { newCheckStates -> checkStates = newCheckStates },
+                            onCheckStateChange = { newCheckStates ->
+                                checkStates = newCheckStates
+                                activities.forEachIndexed { index, exercise ->
+                                    newCheckStates[index].forEachIndexed { setIndex, isChecked ->
+                                        if (isChecked) {
+                                            viewModel.savePowerLiftingSession(
+                                                exercise = exercise,
+                                                weight = 50, // You might want to get this from your UI
+                                                reps = 10,   // You might want to get this from your UI
+                                                sets = setIndex + 1
+                                            )
+                                        }
+                                    }
+                                }
+                            },
                             onActivitiesChange = { newActivities ->
                                 activities = newActivities
                                 checkStates = List(activities.size) { rowIndex ->
@@ -186,7 +217,12 @@ fun FitnessTrackerUI() {
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             CardioTracker(distances = distance,
-                                onDistanceChange = { distance = it },
+                                onDistanceChange = { newDistance ->
+                                    distance = newDistance
+                                    if (time > 0) {
+                                        viewModel.saveCardioSession(newDistance, time)
+                                    }
+                                },
                                 targetDistance = targetDistance,
                                 onTargetDistanceChange = { targetDistance = it })
                         }

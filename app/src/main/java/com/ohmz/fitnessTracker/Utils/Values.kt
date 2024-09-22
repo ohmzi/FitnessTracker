@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.data
+package com.ohmz.fitnessTracker.Utils
 
 class Values {
     companion object {

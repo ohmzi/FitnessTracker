@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.UI.View.components
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -30,8 +30,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.data.getStringResource
-import com.ohmz.fitnessTracker.ui.theme.WorkoutTypeSelected
+import com.ohmz.fitnessTracker.UI.View.theme.WorkoutTypeSelected
+import com.ohmz.fitnessTracker.Utils.getStringResource
 import com.ohmz.fitnesstracker.R
 
 @Composable
