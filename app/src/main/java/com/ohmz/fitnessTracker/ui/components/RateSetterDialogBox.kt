@@ -1,5 +1,6 @@
 package com.ohmz.fitnessTracker.ui.components
 
+import android.content.Context
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,14 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.ohmz.fitnessTracker.data.Values
+import com.ohmz.fitnessTracker.data.getStringResource
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkBlue
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkGreen
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxDarkRed
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightBlue
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightGreen
 import com.ohmz.fitnessTracker.ui.theme.RateSetterDialogBoxLightRed
+import com.ohmz.fitnesstracker.R
 
 
 @Composable
@@ -45,8 +50,8 @@ fun RateSetterDialogBox(
     onDismiss: () -> Unit,
     typeOfWorkout: String
 ) {
+    val context = LocalContext.current
     var selectedValue by remember { mutableStateOf(currentValue) }
-
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -58,7 +63,12 @@ fun RateSetterDialogBox(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(setDialogTitle(typeOfWorkout), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    setDialogTitle(
+                        context = context,
+                        typeOfWorkout
+                    ), style = MaterialTheme.typography.titleLarge
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -89,32 +99,46 @@ fun RateSetterDialogBox(
                     lightColor = RateSetterDialogBoxLightGreen,
                     darkColor = RateSetterDialogBoxDarkGreen,
                     modifier = Modifier.fillMaxWidth(),
-                    content = { Text("Confirm", color = Color.Black) })
+                    content = {
+                        Text(
+                            getStringResource(
+                                context = context,
+                                stringResId = R.string.rateDialog_Confirm
+                            ), color = Color.Black
+                        )
+                    })
             }
         }
     }
 }
 
 fun setDialogStepValue(typeOfWorkout: String): Float = when (typeOfWorkout) {
-    "Cardio" -> 0.5f
-    "Power" -> 5f
+    Values.WORKOUT_CARDIO -> 0.5f
+    Values.WORKOUT_POWER -> 5f
     else -> 0.0f
 }
 
 
 fun setDialogChangeUnit(typeOfWorkout: String, selectedValue: Float): String =
     when (typeOfWorkout) {
-        "Cardio" -> String.format("%.1f km", selectedValue)
-        "Power" -> selectedValue.toString()
+        Values.WORKOUT_CARDIO -> String.format("%.1f km", selectedValue)
+        Values.WORKOUT_POWER -> selectedValue.toString()
         else -> "units"
     }
 
-fun setDialogTitle(typeOfWorkout: String): String =
-    when (typeOfWorkout) {
-        "Cardio" -> "Select Target Distance"
-        "Power" -> "Change Weight Value"
-        else -> "units"
-    }
+fun setDialogTitle(context: Context, typeOfWorkout: String): String = when (typeOfWorkout) {
+    Values.WORKOUT_CARDIO -> getStringResource(
+        context = context,
+        stringResId = R.string.rateDialog_Tile_Cardio
+    )
+
+    Values.WORKOUT_POWER -> getStringResource(
+        context = context,
+        stringResId = R.string.rateDialog_Tile_Power
+    )
+
+    else -> "units"
+}
 
 
 @Composable

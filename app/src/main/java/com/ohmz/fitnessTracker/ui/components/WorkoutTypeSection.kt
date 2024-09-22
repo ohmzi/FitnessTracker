@@ -27,9 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.data.getStringResource
 import com.ohmz.fitnessTracker.ui.theme.WorkoutTypeSelected
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun WorkoutTypeSection(
@@ -38,6 +41,8 @@ fun WorkoutTypeSection(
     onPowerClick: () -> Unit,
     onCardioClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -46,7 +51,7 @@ fun WorkoutTypeSection(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Workout Type",
+                text = getStringResource(context = context, stringResId = R.string.workoutSelector),
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -56,10 +61,20 @@ fun WorkoutTypeSection(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 WorkoutTypeButton(
-                    text = "Cardio", isSelected = isCardioSelected, onClick = onCardioClick
+                    getStringResource(
+                        context = context,
+                        stringResId = R.string.workoutSelector_Cardio
+                    ),
+                    isSelected = isCardioSelected,
+                    onClick = onCardioClick
                 )
                 WorkoutTypeButton(
-                    text = "Power", isSelected = isPowerSelected, onClick = onPowerClick
+                    getStringResource(
+                        context = context,
+                        stringResId = R.string.workoutSelector_Power
+                    ),
+                    isSelected = isPowerSelected,
+                    onClick = onPowerClick
                 )
             }
         }

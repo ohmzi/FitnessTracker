@@ -12,12 +12,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun AddNewExerciseRow(
     newExerciseName: String, onNewExerciseNameChange: (String) -> Unit, onAddExercise: () -> Unit
 ) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -27,7 +31,12 @@ fun AddNewExerciseRow(
         TextField(
             value = newExerciseName,
             onValueChange = onNewExerciseNameChange,
-            label = { Text("New Exercise", color = Color.White) },
+            label = {
+                Text(
+                    getStringResource(context = context, stringResId = R.string.power_newExercise),
+                    color = Color.White
+                )
+            },
             colors = TextFieldDefaults.colors(
                 unfocusedTextColor = Color.White,
                 focusedTextColor = Color.White,
@@ -45,7 +54,10 @@ fun AddNewExerciseRow(
             onClick = onAddExercise,
             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
         ) {
-            Text("Add", color = Color.Black)
+            Text(
+                getStringResource(context = context, stringResId = R.string.power_add),
+                color = Color.Black
+            )
         }
     }
 }

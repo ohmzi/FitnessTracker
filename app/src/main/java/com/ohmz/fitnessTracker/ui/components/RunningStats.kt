@@ -16,13 +16,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmz.fitnessTracker.data.Values
+import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnesstracker.R
 
 @Composable
-fun RunningStats(time: Long, pace: String) {
+fun RunningStats(
+    time: Long, pace: String
+) {
+    val context = LocalContext.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()
     ) {
@@ -33,7 +41,7 @@ fun RunningStats(time: Long, pace: String) {
                 horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    "Time",
+                    getStringResource(context = context, stringResId = R.string.runningStat_Time),
                     color = Color.Red,
                     fontSize = 18.sp,
                 )
@@ -53,7 +61,9 @@ fun RunningStats(time: Long, pace: String) {
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        "Pace", color = Color.Red, fontSize = 18.sp
+                        getStringResource(
+                            context = context, stringResId = R.string.runningStat_Pace
+                        ), color = Color.Red, fontSize = 18.sp
                     )
                     Text(
                         " (mins/km)", color = Color.Red, fontSize = 14.sp
@@ -66,7 +76,7 @@ fun RunningStats(time: Long, pace: String) {
         }
 
         Text(
-            "Distance (Km)",
+            getStringResource(context = context, stringResId = R.string.runningStat_Distance),
             color = Color.Red,
             fontSize = 18.sp,
             modifier = Modifier.padding(top = 10.dp)
@@ -76,8 +86,11 @@ fun RunningStats(time: Long, pace: String) {
 
 @Composable
 fun Distance(
-    distance: Float, targetDistance: Float, onTargetDistanceChange: (Float) -> Unit
+    distance: Float,
+    targetDistance: Float,
+    onTargetDistanceChange: (Float) -> Unit
 ) {
+    val context = LocalContext.current
     var showPicker by remember { mutableStateOf(false) }
 
     Column(
@@ -122,7 +135,7 @@ fun Distance(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Text(
-                "Progress",
+                getStringResource(context = context, stringResId = R.string.runningStat_Progress),
                 fontSize = 18.sp,
                 color = Color.Red,
             )
@@ -132,7 +145,7 @@ fun Distance(
                 color = Color.Red,
             )
             Text(
-                "Target",
+                getStringResource(context = context, stringResId = R.string.runningStat_Target),
                 fontSize = 18.sp,
                 color = Color.Red,
             )
@@ -144,7 +157,7 @@ fun Distance(
             currentValue = targetDistance,
             onValueChange = { newValue -> onTargetDistanceChange(newValue) },
             onDismiss = { showPicker = false },
-            typeOfWorkout = "Cardio"
+            typeOfWorkout = Values.WORKOUT_CARDIO
         )
     }
 }
@@ -155,4 +168,6 @@ fun formatTime(timeInMillis: Long): String {
     val hours = (timeInMillis / (1000 * 60 * 60)) % 24
     return String.format("%02d:%02d:%02d", hours, minutes, seconds)
 }
+
+
 

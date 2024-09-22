@@ -32,12 +32,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmz.fitnessTracker.data.Values
+import com.ohmz.fitnessTracker.data.getStringResource
 import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
 import com.ohmz.fitnessTracker.ui.theme.weightButtonUnchecked
+import com.ohmz.fitnesstracker.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -49,6 +53,7 @@ fun WeightButtons(
     label: String,
     onLabelChange: (String) -> Unit
 ) {
+    val context = LocalContext.current
     var showEditPopup by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
         if (isChecked) weightButtonChecked else weightButtonUnchecked, label = "backgroundColor"
@@ -99,7 +104,8 @@ fun WeightButtons(
         } else {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = "Checked",
+                contentDescription =
+                getStringResource(context = context, stringResId = R.string.weightButton_Checked),
                 tint = Color.White,
                 modifier = Modifier.size(size * 0.6f)
             )
@@ -110,7 +116,7 @@ fun WeightButtons(
         RateSetterDialogBox(currentValue = label.toFloat(), onValueChange = { newValue ->
             onLabelChange(newValue.toInt().toString())
             showEditPopup = false
-        }, onDismiss = { showEditPopup = false }, typeOfWorkout = "Power"
+        }, onDismiss = { showEditPopup = false }, typeOfWorkout = Values.WORKOUT_POWER
         )
     }
 }

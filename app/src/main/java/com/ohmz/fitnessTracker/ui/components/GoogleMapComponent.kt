@@ -25,6 +25,8 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun GoogleMapComponent(hasLocationPermission: Boolean) {
@@ -58,22 +60,18 @@ fun GoogleMapComponent(hasLocationPermission: Boolean) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        com.google.maps.android.compose.GoogleMap(
-            modifier = Modifier.fillMaxSize(),
+        com.google.maps.android.compose.GoogleMap(modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
-                isMyLocationEnabled = hasLocationPermission,
-                mapType = MapType.NORMAL
+                isMyLocationEnabled = hasLocationPermission, mapType = MapType.NORMAL
             ),
             uiSettings = MapUiSettings(
-                zoomControlsEnabled = true,
-                myLocationButtonEnabled = true
+                zoomControlsEnabled = true, myLocationButtonEnabled = true
             ),
             onMapLoaded = {
                 isMapLoaded = true
                 Log.d("GoogleMap", "Map loaded successfully")
-            }
-        ) {
+            }) {
             currentLocation?.let { location ->
                 Marker(
                     state = MarkerState(position = location),
@@ -91,7 +89,10 @@ fun GoogleMapComponent(hasLocationPermission: Boolean) {
 
         mapLoadError?.let { error ->
             Text(
-                text = "Error loading map: $error",
+                text = getStringResource(
+                    context = context,
+                    stringResId = R.string.map_errorLoading
+                ) + error,
                 modifier = Modifier.align(Alignment.Center)
             )
         }

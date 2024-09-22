@@ -25,7 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.data.getStringResource
 import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
@@ -65,7 +67,9 @@ fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
                 onToggle(!isTracking)
                 Toast.makeText(
                     context,
-                    if (!isTracking) "Starting the run" else "Stopping the run",
+                    if (!isTracking)
+                        getStringResource(context = context, stringResId = R.string.toast_startRun)
+                    else getStringResource(context = context, stringResId = R.string.toast_stopRun),
                     Toast.LENGTH_SHORT
                 ).show()
             },
@@ -74,7 +78,9 @@ fun PlayButton(isTracking: Boolean, onToggle: (Boolean) -> Unit) {
         ) {
             Icon(
                 imageVector = if (isTracking) Icons.Default.Menu else Icons.Default.PlayArrow,
-                contentDescription = if (isTracking) "Stop" else "Start",
+                contentDescription = if (isTracking)
+                    getStringResource(context = context, stringResId = R.string.playButton_stop)
+                else getStringResource(context = context, stringResId = R.string.playButton_start),
                 tint = Color.White,
                 modifier = Modifier.size(100.dp)
             )

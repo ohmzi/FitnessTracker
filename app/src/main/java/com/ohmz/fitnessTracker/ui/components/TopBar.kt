@@ -13,12 +13,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun TopBar() {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -28,17 +32,21 @@ fun TopBar() {
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Back",
+            contentDescription = getStringResource(
+                context = context, stringResId = R.string.topBar_Back
+            ),
             tint = Color.White
         )
         Text(
-            text = "Current Progress",
+            text = getStringResource(context = context, stringResId = R.string.topBar_progress),
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
         Icon(
-            imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.White
+            imageVector = Icons.Default.Menu, contentDescription = getStringResource(
+                context = context, stringResId = R.string.topBar_Menu
+            ), tint = Color.White
         )
     }
 }

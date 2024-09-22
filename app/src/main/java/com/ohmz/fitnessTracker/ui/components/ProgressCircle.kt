@@ -18,10 +18,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ohmz.fitnessTracker.data.getStringResource
 import com.ohmz.fitnessTracker.ui.theme.distanceColor
 import com.ohmz.fitnessTracker.ui.theme.workoutColor
 import com.ohmz.fitnesstracker.R
@@ -34,6 +36,7 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
         label = "workoutProgressAnimation"
     )
 
+    val context = LocalContext.current
     val animatedDistanceProgress by animateFloatAsState(
         targetValue = distanceProgress,
         animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
@@ -113,7 +116,10 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_workout),
-                contentDescription = "Workout Icon",
+                contentDescription = getStringResource(
+                    context = context,
+                    stringResId = R.string.progressCircle_description_Workout
+                ),
                 tint = Color.White,
                 modifier = Modifier
                     .size(size * 0.13f)
@@ -121,7 +127,10 @@ fun ProgressCircle(workoutProgress: Float, distanceProgress: Float, size: Dp) {
             )
             Icon(
                 painter = painterResource(id = R.drawable.ic_running),
-                contentDescription = "Running Icon",
+                contentDescription = getStringResource(
+                    context = context,
+                    stringResId = R.string.progressCircle_description_Running
+                ),
                 tint = Color.White,
                 modifier = Modifier
                     .size(size * 0.17f)

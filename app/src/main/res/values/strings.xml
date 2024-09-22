@@ -1,3 +1,32 @@
 <resources>
     <string name="app_name">Fitness Tracker</string>
+    <string name="power_newExercise">New Exercise</string>
+    <string name="power_add">Add</string>
+    <string name="map_locationPermissionNeeded">Location permission is required to track your run.</string>
+    <string name="map_locationPermissionNeededDialogTitle">Location Permission Required</string>
+    <string name="map_locationPermissionNeededDialogBody">This app needs access to your precise location to show it on the map. Please grant the location permission.</string>
+    <string name="map_locationPermissionGranted">Grant Permission</string>
+    <string name="map_locationPermissionDenied">Deny</string>
+    <string name="map_errorLoading">Error loading map.</string>
+    <string name="toast_startRun">Starting the run</string>
+    <string name="toast_stopRun">Stopping the run</string>
+    <string name="playButton_start">Start</string>
+    <string name="playButton_stop">Stop</string>
+    <string name="progressCircle_description_Workout">Workout Icon</string>
+    <string name="progressCircle_description_Running">Running Icon</string>
+    <string name="rateDialog_Confirm">Confirm</string>
+    <string name="rateDialog_Tile_Cardio">Select Target Distance</string>
+    <string name="rateDialog_Tile_Power">Change Weight Value</string>
+    <string name="runningStat_Target">Target</string>
+    <string name="runningStat_Time">Time</string>
+    <string name="runningStat_Pace">Pace</string>
+    <string name="runningStat_Distance">Distance (Km)</string>
+    <string name="runningStat_Progress">Progress</string>
+    <string name="topBar_Back">Back</string>
+    <string name="topBar_Menu">Menu</string>
+    <string name="topBar_progress">Current Progress</string>
+    <string name="weightButton_Checked">Checked</string>
+    <string name="workoutSelector">Workout Type</string>
+    <string name="workoutSelector_Cardio">Cardio</string>
+    <string name="workoutSelector_Power">Power</string>
 </resources>

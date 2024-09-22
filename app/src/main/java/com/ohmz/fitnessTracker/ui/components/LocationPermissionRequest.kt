@@ -15,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.ohmz.fitnessTracker.data.getStringResource
+import com.ohmz.fitnesstracker.R
 
 @Composable
 fun LocationPermissionRequest(
@@ -23,25 +25,22 @@ fun LocationPermissionRequest(
     val context = LocalContext.current
     var showRationale by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            onPermissionResult(isGranted)
-        }
-    )
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                onPermissionResult(isGranted)
+            })
 
     LaunchedEffect(Unit) {
         when {
             ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                context, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
                 onPermissionResult(true)
             }
 
             shouldShowRequestPermissionRationale(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                context, Manifest.permission.ACCESS_FINE_LOCATION
             ) -> {
                 showRationale = true
             }
@@ -53,42 +52,55 @@ fun LocationPermissionRequest(
     }
 
     if (showRationale) {
-        AlertDialog(
-            onDismissRequest = { showRationale = false },
-            title = { Text("Location Permission Required") },
+        AlertDialog(onDismissRequest = { showRationale = false },
+            title = {
+                Text(
+                    getStringResource(
+                        context = context,
+                        stringResId = R.string.map_locationPermissionNeededDialogTitle
+                    )
+                )
+            },
             text = {
                 Text(
-                    "This app needs access to your precise location to show it on the map. " +
-                            "Please grant the location permission."
+                    getStringResource(
+                        context = context,
+                        stringResId = R.string.map_locationPermissionNeededDialogBody
+                    )
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showRationale = false
-                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                    }
-                ) {
-                    Text("Grant Permission")
+                Button(onClick = {
+                    showRationale = false
+                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                }) {
+                    Text(
+                        getStringResource(
+                            context = context,
+                            stringResId = R.string.map_locationPermissionGranted
+                        )
+                    )
                 }
             },
             dismissButton = {
-                Button(
-                    onClick = {
-                        showRationale = false
-                        onPermissionResult(false)
-                    }
-                ) {
-                    Text("Deny")
+                Button(onClick = {
+                    showRationale = false
+                    onPermissionResult(false)
+                }) {
+
+                    Text(
+                        getStringResource(
+                            context = context,
+                            stringResId = R.string.map_locationPermissionDenied
+                        )
+                    )
                 }
-            }
-        )
+            })
     }
 }
 
 private fun shouldShowRequestPermissionRationale(
-    context: android.content.Context,
-    permission: String
+    context: android.content.Context, permission: String
 ): Boolean {
     return if (context is androidx.activity.ComponentActivity) {
         context.shouldShowRequestPermissionRationale(permission)
