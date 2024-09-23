@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.screens
+package com.ohmz.fitnessTracker.views.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.ui.components.AddNewExerciseRow
-import com.ohmz.fitnessTracker.ui.components.WorkoutListGrid
-import com.ohmz.fitnessTracker.ui.components.WorkoutListGridColumnLabel
+import com.ohmz.fitnessTracker.views.components.AddNewExerciseRow
+import com.ohmz.fitnessTracker.views.components.WorkoutListGrid
+import com.ohmz.fitnessTracker.views.components.WorkoutListGridColumnLabel
 
 @Composable
 fun PowerTracker(
@@ -29,24 +28,23 @@ fun PowerTracker(
     onCheckStateChange: (List<List<Boolean>>) -> Unit,
     onActivitiesChange: (List<String>) -> Unit,
     onVisibleSetsCountChange: (Int) -> Unit,
-    isExpanded: Boolean
+    isExpanded: Boolean,
+    labelStates: List<List<String>>,
+    onLabelChange: (List<List<String>>) -> Unit
 ) {
     var zoomFactor by remember { mutableStateOf(1f) }
-    val visibleSets by remember {
-        derivedStateOf {
-            val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
-            allSets.take(visibleCount)
-        }
+    val visibleSets = remember(zoomFactor) {
+        val visibleCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
+        allSets.take(visibleCount)
     }
 
-    var labelStates by remember { mutableStateOf(List(activities.size) { List(allSets.size) { "50" } }) }
-
-    val rowHeight by remember { derivedStateOf { (80 * zoomFactor).coerceIn(80f, 160f).dp } }
+    val rowHeight by remember { mutableStateOf((80 * zoomFactor).coerceIn(80f, 160f).dp) }
 
     var newExerciseName by remember { mutableStateOf("") }
 
     val visibleSetsCount = (allSets.size / zoomFactor).toInt().coerceIn(3, allSets.size)
     onVisibleSetsCountChange(visibleSetsCount)
+
     val alpha by animateFloatAsState(
         targetValue = if (isExpanded) 1f else 0f,
         animationSpec = tween(durationMillis = 500),
@@ -74,10 +72,12 @@ fun PowerTracker(
                 rowHeight = rowHeight,
                 onCheckStateChange = onCheckStateChange,
                 onActivitiesChange = onActivitiesChange,
-                onLabelChange = { newLabelStates -> labelStates = newLabelStates })
+                onLabelChange = onLabelChange
+            )
         }
 
-        AddNewExerciseRow(newExerciseName = newExerciseName,
+        AddNewExerciseRow(
+            newExerciseName = newExerciseName,
             onNewExerciseNameChange = { newExerciseName = it },
             onAddExercise = {
                 if (newExerciseName.isNotBlank()) {
@@ -87,15 +87,14 @@ fun PowerTracker(
                         add(List(allSets.size) { false })
                     }
                     onCheckStateChange(newCheckStates)
-                    labelStates = labelStates.toMutableList().apply {
+                    val newLabelStates = labelStates.toMutableList().apply {
                         add(List(allSets.size) { "40" })
                     }
+                    onLabelChange(newLabelStates)
                     newExerciseName = ""
                 }
-            })
+            }
+        )
         Spacer(modifier = Modifier.height(50.dp))
-
     }
 }
-
-

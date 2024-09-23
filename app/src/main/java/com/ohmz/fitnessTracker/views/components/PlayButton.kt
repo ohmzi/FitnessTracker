@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.views.components
 
 import android.widget.Toast
 import androidx.compose.animation.core.Spring
@@ -25,8 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.data.getStringResource
-import com.ohmz.fitnessTracker.ui.theme.weightButtonChecked
+import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.views.theme.weightButtonChecked
 import com.ohmz.fitnesstracker.R
 
 @Composable
