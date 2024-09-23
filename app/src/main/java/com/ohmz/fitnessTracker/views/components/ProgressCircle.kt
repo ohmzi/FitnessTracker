@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.components
+package com.ohmz.fitnessTracker.views.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,9 +23,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.data.getStringResource
-import com.ohmz.fitnessTracker.ui.theme.distanceColor
-import com.ohmz.fitnessTracker.ui.theme.workoutColor
+import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.views.theme.distanceColor
+import com.ohmz.fitnessTracker.views.theme.workoutColor
 import com.ohmz.fitnesstracker.R
 
 @Composable

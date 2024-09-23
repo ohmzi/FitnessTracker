@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.screens
+package com.ohmz.fitnessTracker.views.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -29,12 +29,12 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.ohmz.fitnessTracker.data.getStringResource
-import com.ohmz.fitnessTracker.ui.components.Distance
-import com.ohmz.fitnessTracker.ui.components.GoogleMapComponent
-import com.ohmz.fitnessTracker.ui.components.LocationPermissionRequest
-import com.ohmz.fitnessTracker.ui.components.PlayButton
-import com.ohmz.fitnessTracker.ui.components.RunningStats
+import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.views.components.Distance
+import com.ohmz.fitnessTracker.views.components.GoogleMapComponent
+import com.ohmz.fitnessTracker.views.components.LocationPermissionRequest
+import com.ohmz.fitnessTracker.views.components.PlayButton
+import com.ohmz.fitnessTracker.views.components.RunningStats
 import com.ohmz.fitnesstracker.R
 import kotlinx.coroutines.delay
 

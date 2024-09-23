@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.viewModel
+package com.ohmz.fitnessTracker.viewModels
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

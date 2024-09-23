@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.theme
+package com.ohmz.fitnessTracker.views.theme
 
 import androidx.compose.ui.graphics.Color
 

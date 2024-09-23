@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.data
+package com.ohmz.fitnessTracker.utils
 
 import android.content.Context
 

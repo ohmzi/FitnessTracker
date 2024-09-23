@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.ui.screens
+package com.ohmz.fitnessTracker.views.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -34,14 +34,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ohmz.fitnessTracker.ui.components.ProgressCircle
-import com.ohmz.fitnessTracker.ui.components.ScrollButtons
-import com.ohmz.fitnessTracker.ui.components.TopBar
-import com.ohmz.fitnessTracker.ui.components.WorkoutTypeSection
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor1
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor2
-import com.ohmz.fitnessTracker.ui.theme.BackgroundColor3
-import com.ohmz.fitnessTracker.viewModel.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.viewModels.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.views.components.ProgressCircle
+import com.ohmz.fitnessTracker.views.components.ScrollButtons
+import com.ohmz.fitnessTracker.views.components.TopBar
+import com.ohmz.fitnessTracker.views.components.WorkoutTypeSection
+import com.ohmz.fitnessTracker.views.theme.BackgroundColor1
+import com.ohmz.fitnessTracker.views.theme.BackgroundColor2
+import com.ohmz.fitnessTracker.views.theme.BackgroundColor3
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -57,7 +57,7 @@ fun FitnessTrackerUI(viewModel: FitnessTrackerViewModel = viewModel()) {
             val totalPossibleChecks =
                 uiState.powerWorkout.activities.size * uiState.powerWorkout.visibleSetsCount
             if (totalPossibleChecks > 0) totalChecks.toFloat() / totalPossibleChecks else 0f
-    }
+        }
 
     val distanceProgress =
         (uiState.cardioWorkout.distance / 1000 / uiState.cardioWorkout.targetDistance).coerceIn(
