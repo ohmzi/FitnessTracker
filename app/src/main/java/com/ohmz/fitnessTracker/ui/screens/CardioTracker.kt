@@ -16,8 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,21 +37,22 @@ import com.ohmz.fitnessTracker.ui.components.PlayButton
 import com.ohmz.fitnessTracker.ui.components.RunningStats
 import com.ohmz.fitnesstracker.R
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun CardioTracker(
     distances: Float,
     onDistanceChange: (Float) -> Unit,
     targetDistance: Float,
-    onTargetDistanceChange: (Float) -> Unit
+    onTargetDistanceChange: (Float) -> Unit,
+    time: Long,
+    onTimeChange: (Long) -> Unit,
+    pace: Float,
+    onPaceChange: (Float) -> Unit,
+    onReset: () -> Unit
 ) {
-    var distance = distances
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(false) }
     var isTracking by remember { mutableStateOf(false) }
-    var time by remember { mutableLongStateOf(0L) } // in milliseconds
-    var pace by remember { mutableFloatStateOf(0f) } // in minutes per kilometer
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var lastLocation by remember { mutableStateOf<Location?>(null) }
@@ -64,7 +63,7 @@ fun CardioTracker(
                 val location = locationResult.lastLocation ?: return
                 if (lastLocation != null) {
                     val newDistance = lastLocation!!.distanceTo(location)
-                    onDistanceChange(distance + newDistance)
+                    onDistanceChange(distances + newDistance)
                 }
                 lastLocation = location
             }
@@ -80,9 +79,11 @@ fun CardioTracker(
             }
             if (hasLocationPermission) {
                 if (ActivityCompat.checkSelfPermission(
-                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        context, Manifest.permission.ACCESS_COARSE_LOCATION
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
                     return@LaunchedEffect
@@ -91,16 +92,15 @@ fun CardioTracker(
             }
 
             // Start a coroutine for the timer
-            launch {
-                val startTime =
-                    SystemClock.elapsedRealtime() - time // Resume from previous time if any
-                while (isTracking) {
-                    delay(1000) // Update every second
-                    time = SystemClock.elapsedRealtime() - startTime
-                    // Calculate pace (minutes per kilometer)
-                    if (distance > 0) {
-                        pace = (time / 60000f) / (distance / 1000f)
-                    }
+            val startTime = SystemClock.elapsedRealtime() - time // Resume from previous time if any
+            while (isTracking) {
+                delay(1000) // Update every second
+                val newTime = SystemClock.elapsedRealtime() - startTime
+                onTimeChange(newTime)
+                // Calculate pace (minutes per kilometer)
+                if (distances > 0) {
+                    val newPace = (newTime / 60000f) / (distances / 1000f)
+                    onPaceChange(newPace)
                 }
             }
         } else {
@@ -133,7 +133,8 @@ fun CardioTracker(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
                     containerColor = Color.White.copy(alpha = 0.6f)
                 )
             ) {
@@ -142,22 +143,22 @@ fun CardioTracker(
                     pace = if (pace.isFinite()) String.format("%.2f", pace) else "0.00"
                 )
                 Distance(
-                    distance = distance / 1000f, // Convert to km
-                    targetDistance = targetDistance, onTargetDistanceChange = onTargetDistanceChange
+                    distance = distances / 1000f, // Convert to km
+                    targetDistance = targetDistance,
+                    onTargetDistanceChange = onTargetDistanceChange
                 )
             }
             Spacer(modifier = Modifier.weight(0.5f))
-            PlayButton(isTracking = isTracking, onToggle = { newIsTracking ->
-                isTracking = newIsTracking
-                if (!newIsTracking) {
-                    // Reset values when stopping
-                    distance = 0f
-                    time = 0L
-                    pace = 0f
-                    lastLocation = null
+            PlayButton(
+                isTracking = isTracking,
+                onToggle = { newIsTracking ->
+                    isTracking = newIsTracking
+                    if (!newIsTracking) {
+                        onReset()
+                        lastLocation = null
+                    }
                 }
-            })
+            )
         }
     }
 }
-
