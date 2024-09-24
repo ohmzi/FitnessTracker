@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -82,6 +83,14 @@ fun FitnessTrackerUI(viewModel: FitnessTrackerViewModel = viewModel()) {
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(uiState.isPowerExpanded, uiState.isCardioExpanded) {
+        if (uiState.isPowerExpanded || uiState.isCardioExpanded) {
+            viewModel.startNotificationService()
+        } else {
+            viewModel.stopNotificationService()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -169,6 +178,7 @@ fun FitnessTrackerUI(viewModel: FitnessTrackerViewModel = viewModel()) {
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             CardioTracker(
+                                viewModel = viewModel,
                                 distances = uiState.cardioWorkout.distance,
                                 onDistanceChange = { viewModel.updateCardioWorkoutDistance(it) },
                                 targetDistance = uiState.cardioWorkout.targetDistance,

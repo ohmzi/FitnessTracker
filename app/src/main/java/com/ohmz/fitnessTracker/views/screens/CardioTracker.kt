@@ -25,11 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.viewModels.FitnessTrackerViewModel
 import com.ohmz.fitnessTracker.views.components.Distance
 import com.ohmz.fitnessTracker.views.components.GoogleMapComponent
 import com.ohmz.fitnessTracker.views.components.LocationPermissionRequest
@@ -40,6 +42,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun CardioTracker(
+    viewModel: FitnessTrackerViewModel,
     distances: Float,
     onDistanceChange: (Float) -> Unit,
     targetDistance: Float,
@@ -50,6 +53,7 @@ fun CardioTracker(
     onPaceChange: (Float) -> Unit,
     onReset: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(false) }
     var isTracking by remember { mutableStateOf(false) }
@@ -95,12 +99,13 @@ fun CardioTracker(
             val startTime = SystemClock.elapsedRealtime() - time // Resume from previous time if any
             while (isTracking) {
                 delay(1000) // Update every second
-                val newTime = SystemClock.elapsedRealtime() - startTime
-                onTimeChange(newTime)
-                // Calculate pace (minutes per kilometer)
-                if (distances > 0) {
-                    val newPace = (newTime / 60000f) / (distances / 1000f)
-                    onPaceChange(newPace)
+                val newTime = System.currentTimeMillis() - startTime
+                viewModel.updateCardioWorkoutTime(newTime)
+
+                // Update pace
+                if (uiState.cardioWorkout.distance > 0) {
+                    val newPace = (newTime / 60000f) / (uiState.cardioWorkout.distance / 1000f)
+                    viewModel.updateCardioWorkoutPace(newPace)
                 }
             }
         } else {
@@ -153,9 +158,11 @@ fun CardioTracker(
                 isTracking = isTracking,
                 onToggle = { newIsTracking ->
                     isTracking = newIsTracking
-                    if (!newIsTracking) {
-                        onReset()
-                        lastLocation = null
+                    if (newIsTracking) {
+                        viewModel.startCardioWorkout()
+                    } else {
+                        viewModel.stopCardioWorkout()
+                        viewModel.resetCardioWorkout()
                     }
                 }
             )
