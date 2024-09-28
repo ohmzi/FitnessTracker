@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.viewModels
+package com.ohmz.fitnessTracker.tracker.viewModels
 
 import android.app.Application
 import android.content.Context
@@ -7,7 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.ohmz.fitnessTracker.services.NotificationService
+import com.ohmz.fitnessTracker.tracker.services.NotificationService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

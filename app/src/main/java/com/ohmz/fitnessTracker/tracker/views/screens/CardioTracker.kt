@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.screens
+package com.ohmz.fitnessTracker.tracker.views.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -30,13 +30,13 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.ohmz.fitnessTracker.utils.getStringResource
-import com.ohmz.fitnessTracker.viewModels.FitnessTrackerViewModel
-import com.ohmz.fitnessTracker.views.components.Distance
-import com.ohmz.fitnessTracker.views.components.GoogleMapComponent
-import com.ohmz.fitnessTracker.views.components.LocationPermissionRequest
-import com.ohmz.fitnessTracker.views.components.PlayButton
-import com.ohmz.fitnessTracker.views.components.RunningStats
+import com.ohmz.fitnessTracker.tracker.utils.getStringResource
+import com.ohmz.fitnessTracker.tracker.viewModels.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.tracker.views.components.Distance
+import com.ohmz.fitnessTracker.tracker.views.components.GoogleMapComponent
+import com.ohmz.fitnessTracker.tracker.views.components.LocationPermissionRequest
+import com.ohmz.fitnessTracker.tracker.views.components.PlayButton
+import com.ohmz.fitnessTracker.tracker.views.components.RunningStats
 import com.ohmz.fitnesstracker.R
 import kotlinx.coroutines.delay
 

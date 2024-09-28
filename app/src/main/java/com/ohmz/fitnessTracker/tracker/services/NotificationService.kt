@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.services
+package com.ohmz.fitnessTracker.tracker.services
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,8 +10,8 @@ import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.ohmz.fitnessTracker.viewModels.FitnessTrackerViewModel
-import com.ohmz.fitnessTracker.views.MainActivity
+import com.ohmz.fitnessTracker.tracker.viewModels.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.tracker.views.MainActivity
 import com.ohmz.fitnesstracker.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

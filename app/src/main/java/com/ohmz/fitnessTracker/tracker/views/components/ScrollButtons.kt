@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.components
+package com.ohmz.fitnessTracker.tracker.views.components
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState

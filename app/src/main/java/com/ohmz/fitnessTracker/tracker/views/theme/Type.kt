@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.theme
+package com.ohmz.fitnessTracker.tracker.views.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

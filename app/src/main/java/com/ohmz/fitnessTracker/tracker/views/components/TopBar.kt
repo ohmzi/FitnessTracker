@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.components
+package com.ohmz.fitnessTracker.tracker.views.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.tracker.utils.getStringResource
 import com.ohmz.fitnesstracker.R
 
 @Composable

@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.screens
+package com.ohmz.fitnessTracker.tracker.views.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.ohmz.fitnessTracker.views.components.AddNewExerciseRow
-import com.ohmz.fitnessTracker.views.components.WorkoutListGrid
-import com.ohmz.fitnessTracker.views.components.WorkoutListGridColumnLabel
+import com.ohmz.fitnessTracker.tracker.views.components.AddNewExerciseRow
+import com.ohmz.fitnessTracker.tracker.views.components.WorkoutListGrid
+import com.ohmz.fitnessTracker.tracker.views.components.WorkoutListGridColumnLabel
 
 @Composable
 fun PowerTracker(

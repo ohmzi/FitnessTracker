@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.components
+package com.ohmz.fitnessTracker.tracker.views.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -37,10 +37,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ohmz.fitnessTracker.utils.Values
-import com.ohmz.fitnessTracker.utils.getStringResource
-import com.ohmz.fitnessTracker.views.theme.weightButtonChecked
-import com.ohmz.fitnessTracker.views.theme.weightButtonUnchecked
+import com.ohmz.fitnessTracker.tracker.utils.Values
+import com.ohmz.fitnessTracker.tracker.utils.getStringResource
+import com.ohmz.fitnessTracker.tracker.views.theme.weightButtonChecked
+import com.ohmz.fitnessTracker.tracker.views.theme.weightButtonUnchecked
 import com.ohmz.fitnesstracker.R
 
 @OptIn(ExperimentalFoundationApi::class)

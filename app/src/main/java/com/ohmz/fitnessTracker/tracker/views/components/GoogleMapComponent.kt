@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.components
+package com.ohmz.fitnessTracker.tracker.views.components
 
 import android.location.Location
 import android.util.Log
@@ -25,7 +25,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.ohmz.fitnessTracker.utils.getStringResource
+import com.ohmz.fitnessTracker.tracker.utils.getStringResource
 import com.ohmz.fitnesstracker.R
 
 @Composable

@@ -34,7 +34,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name="com.ohmz.fitnessTracker.services.NotificationService"
+            android:name="com.ohmz.fitnessTracker.tracker.services.NotificationService"
             android:exported="false"
             android:foregroundServiceType="location" />
     </application>

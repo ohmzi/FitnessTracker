@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.screens
+package com.ohmz.fitnessTracker.tracker.views.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -35,14 +35,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ohmz.fitnessTracker.viewModels.FitnessTrackerViewModel
-import com.ohmz.fitnessTracker.views.components.ProgressCircle
-import com.ohmz.fitnessTracker.views.components.ScrollButtons
-import com.ohmz.fitnessTracker.views.components.TopBar
-import com.ohmz.fitnessTracker.views.components.WorkoutTypeSection
-import com.ohmz.fitnessTracker.views.theme.BackgroundColor1
-import com.ohmz.fitnessTracker.views.theme.BackgroundColor2
-import com.ohmz.fitnessTracker.views.theme.BackgroundColor3
+import com.ohmz.fitnessTracker.tracker.viewModels.FitnessTrackerViewModel
+import com.ohmz.fitnessTracker.tracker.views.components.ProgressCircle
+import com.ohmz.fitnessTracker.tracker.views.components.ScrollButtons
+import com.ohmz.fitnessTracker.tracker.views.components.TopBar
+import com.ohmz.fitnessTracker.tracker.views.components.WorkoutTypeSection
+import com.ohmz.fitnessTracker.tracker.views.theme.BackgroundColor1
+import com.ohmz.fitnessTracker.tracker.views.theme.BackgroundColor2
+import com.ohmz.fitnessTracker.tracker.views.theme.BackgroundColor3
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 

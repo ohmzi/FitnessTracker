@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.components
+package com.ohmz.fitnessTracker.tracker.views.components
 
 import android.content.Context
 import androidx.compose.animation.animateColorAsState
@@ -32,14 +32,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.ohmz.fitnessTracker.utils.Values
-import com.ohmz.fitnessTracker.utils.getStringResource
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxDarkBlue
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxDarkGreen
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxDarkRed
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxLightBlue
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxLightGreen
-import com.ohmz.fitnessTracker.views.theme.RateSetterDialogBoxLightRed
+import com.ohmz.fitnessTracker.tracker.utils.Values
+import com.ohmz.fitnessTracker.tracker.utils.getStringResource
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxDarkBlue
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxDarkGreen
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxDarkRed
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxLightBlue
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxLightGreen
+import com.ohmz.fitnessTracker.tracker.views.theme.RateSetterDialogBoxLightRed
 import com.ohmz.fitnesstracker.R
 
 

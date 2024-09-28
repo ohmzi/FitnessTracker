@@ -1,4 +1,4 @@
-package com.ohmz.fitnessTracker.views.theme
+package com.ohmz.fitnessTracker.tracker.views.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
