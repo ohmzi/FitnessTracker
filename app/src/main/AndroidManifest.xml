@@ -24,7 +24,7 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
         <activity
-            android:name="com.ohmz.fitnessTracker.views.MainActivity"
+            android:name="com.ohmz.fitnessTracker.tracker.views.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.FitnessTracker">
             <intent-filter>
