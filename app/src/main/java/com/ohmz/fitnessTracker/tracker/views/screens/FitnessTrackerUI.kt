@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ohmz.fitnessTracker.confetti.ConfettiViewModel
+import com.ohmz.fitnessTracker.confetti.view.ConfettiUI
 import com.ohmz.fitnessTracker.tracker.viewModels.FitnessTrackerViewModel
 import com.ohmz.fitnessTracker.tracker.views.components.ProgressCircle
 import com.ohmz.fitnessTracker.tracker.views.components.ScrollButtons
@@ -47,7 +49,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun FitnessTrackerUI(viewModel: FitnessTrackerViewModel = viewModel()) {
+fun FitnessTrackerUI(
+    viewModel: FitnessTrackerViewModel = viewModel(),
+    confettiViewModel: ConfettiViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     val workoutProgress =
@@ -103,6 +108,9 @@ fun FitnessTrackerUI(viewModel: FitnessTrackerViewModel = viewModel()) {
                 )
             )
     ) {
+        if (workoutProgress == 1f || distanceProgress == 1f) {
+            ConfettiUI(confettiViewModel)
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
